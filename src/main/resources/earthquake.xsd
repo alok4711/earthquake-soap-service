@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:tns="http://com.alok/earthquake_soap_service"
+           targetNamespace="http://com.alok/earthquake_soap_service"
+           elementFormDefault="qualified">
+
+    <!-- =================================================================== -->
+    <!-- Operation 1: getRecentEarthquakes                                   -->
+    <!-- =================================================================== -->
+    <xs:element name="getRecentEarthquakesRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="minMagnitude" type="xs:double"/>
+                <xs:element name="timeRangeHours" type="xs:int"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="getRecentEarthquakesResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="earthquakes" type="tns:earthquakeInfo" minOccurs="0" maxOccurs="unbounded"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="earthquakeInfo">
+        <xs:sequence>
+            <xs:element name="id" type="xs:string"/>
+            <xs:element name="magnitude" type="xs:double"/>
+            <xs:element name="place" type="xs:string"/>
+            <xs:element name="timeUTC" type="xs:string"/>
+            <xs:element name="latitude" type="xs:double"/>
+            <xs:element name="longitude" type="xs:double"/>
+            <xs:element name="depthKm" type="xs:double"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- =================================================================== -->
+    <!-- Operation 2: subscribeToAlert                                       -->
+    <!-- =================================================================== -->
+    <xs:element name="subscribeToAlertRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="subscriberName" type="xs:string"/>
+                <xs:element name="subscriberContact" type="xs:string"/>
+                <xs:element name="minMagnitudeThreshold" type="xs:double"/>
+                <xs:element name="region" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="subscribeToAlertResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="subscriptionId" type="xs:string"/>
+                <xs:element name="status" type="xs:string"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <!-- =================================================================== -->
+    <!-- Operation 3: dispatchResource                                       -->
+    <!-- =================================================================== -->
+    <xs:simpleType name="resourceType">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="MEDICAL"/>
+            <xs:enumeration value="RESCUE"/>
+            <xs:enumeration value="SHELTER"/>
+            <xs:enumeration value="SUPPLIES"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:element name="dispatchResourceRequest">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="earthquakeId" type="xs:string"/>
+                <xs:element name="resourceType" type="tns:resourceType"/>
+                <xs:element name="quantity" type="xs:int"/>
+                <xs:element name="destinationRegion" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:element name="dispatchResourceResponse">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:element name="dispatchId" type="xs:string"/>
+                <xs:element name="status" type="xs:string"/>
+                <xs:element name="estimatedArrivalHours" type="xs:double"/>
+                <xs:element name="message" type="xs:string"/>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+
+</xs:schema>
