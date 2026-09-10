@@ -45,6 +45,30 @@
 			<artifactId>jaxb-runtime</artifactId>
 		</dependency>
 
+		<!-- Spring Data JPA & PostgreSQL Driver -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
+		</dependency>
+
+		<!-- Azure Communication Services Email SDK -->
+		<dependency>
+			<groupId>com.azure</groupId>
+			<artifactId>azure-communication-email</artifactId>
+			<version>1.1.2</version>
+		</dependency>
+
+		<!-- In-Memory H2 for isolated automated test runs -->
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>test</scope>
+		</dependency>
+
 		<!-- Test Starter -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -84,12 +108,13 @@
 				</configuration>
 			</plugin>
 
-			<!-- Surefire Plugin configured for modern JDK agent loading -->
+			<!-- Surefire Plugin configured for modern JDK agent loading and lean memory -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-Xmx384m -XX:+EnableDynamicAgentLoading</argLine>
+					<forkCount>0</forkCount>
+					<argLine>-Xmx256m -XX:MaxMetaspaceSize=128m -XX:CICompilerCount=2 -XX:TieredStopAtLevel=1 -XX:+EnableDynamicAgentLoading</argLine>
 				</configuration>
 			</plugin>
 
@@ -120,6 +145,44 @@
 							</resource>
 						</resources>
 					</deployment>
+					<appSettings>
+						<property>
+							<name>DB_HOST</name>
+							<value>${env.DB_HOST}</value>
+						</property>
+						<property>
+							<name>DB_PORT</name>
+							<value>${env.DB_PORT:5432}</value>
+						</property>
+						<property>
+							<name>DB_NAME</name>
+							<value>${env.DB_NAME}</value>
+						</property>
+						<property>
+							<name>DB_USER</name>
+							<value>${env.DB_USER}</value>
+						</property>
+						<property>
+							<name>DB_PASSWORD</name>
+							<value>${env.DB_PASSWORD}</value>
+						</property>
+						<property>
+							<name>DB_SSLMODE</name>
+							<value>${env.DB_SSLMODE:require}</value>
+						</property>
+						<property>
+							<name>ACS_CONNECTION_STRING</name>
+							<value>${env.ACS_CONNECTION_STRING}</value>
+						</property>
+						<property>
+							<name>ACS_SENDER_ADDRESS</name>
+							<value>${env.ACS_SENDER_ADDRESS}</value>
+						</property>
+						<property>
+							<name>PORT</name>
+							<value>8080</value>
+						</property>
+					</appSettings>
 				</configuration>
 			</plugin>
 		</plugins>
