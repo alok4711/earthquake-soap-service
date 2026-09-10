@@ -1,25 +1,27 @@
 # Real-Time Earthquake Alert & Emergency Resource Dispatch System
 
 > **Course Assignment**: Cloud Computing  
-> **Architecture**: Contract-First SOAP Web Service  
-> **Tech Stack**: Java 17, Spring Boot 3.4.3, Spring-WS, Maven, USGS GeoJSON API, Azure App Service  
+> **Architecture**: Contract-First SOAP Web Service with Micro-Worker Architecture  
+> **Tech Stack**: Java 17, Spring Boot 3.4.3, Spring Data JPA, PostgreSQL, Azure Communication Services, Spring-WS, Maven, USGS GeoJSON API, Azure App Service  
 
 ---
 
 ## 1. Project Overview
 
-The **Real-Time Earthquake Alert & Emergency Resource Dispatch System** is a mission-critical cloud-ready SOAP web service designed to assist emergency management personnel and disaster response agencies. It bridges real-time geophysical observation data with automated emergency logistics and public safety alert registrations.
+The **Real-Time Earthquake Alert & Emergency Resource Dispatch System** is a mission-critical, enterprise-grade cloud SOAP web service and automated emergency worker. It bridges real-time geophysical observation data with automated emergency logistics, relational database persistence, and automated multichannel citizen/responder alerts.
 
 ### Core Capabilities:
 1. **Real-Time Seismic Surveillance (`getRecentEarthquakes`)**: Queries live real-time seismic feeds from the United States Geological Survey (USGS), filters events by minimum Richter magnitude and recency window (in hours), and delivers structured earthquake metadata (magnitude, epicenter coordinates, depth, UTC timestamp).
-2. **Citizen & Responder Alert Subscription (`subscribeToAlert`)**: Registers automated alert subscriptions for emergency services or regional monitors watching specific geographic zones and seismic thresholds.
-3. **Emergency Resource Dispatch Simulation (`dispatchResource`)**: Simulates dispatch operations for disaster response supplies (`MEDICAL`, `RESCUE`, `SHELTER`, `SUPPLIES`), generating tracking identifiers, status tracking (`DISPATCHED`), and calculated logistics ETAs.
+2. **Citizen & Responder Alert Subscription (`subscribeToAlert`)**: Registers automated alert subscriptions with real PostgreSQL persistence, tracking subscriber contact, minimum magnitude threshold, and geographic region.
+3. **Emergency Resource Dispatch (`dispatchResource`)**: Dispatches disaster response supplies (`MEDICAL`, `RESCUE`, `SHELTER`, `SUPPLIES`), generating tracking identifiers, persistence to PostgreSQL, status tracking (`DISPATCHED`), and calculated logistics ETAs.
+4. **Autonomous Scheduled Alert Polling Worker (`ScheduledAlertPollingJob`)**: Runs periodically in the background (default: every 5 minutes), fetching fresh USGS seismic events, evaluating active subscriptions against magnitude thresholds and regions, and dispatching real alerts.
+5. **Multi-Channel Alert Dispatch (Azure Communication Services Email)**: Dispatches branded HTML/plain-text alert notifications with direct USGS event links and coordinates via Azure Communication Services Email SDK, with graceful fallback to simulated mock mode in development.
 
 ---
 
 ## 2. System Architecture & Contract-First SOAP Flow
 
-This service follows the industry-standard **Contract-First (Schema-First)** SOAP methodology.
+This service adheres to the industry-standard **Contract-First (Schema-First)** SOAP methodology coupled with asynchronous background processing and relational persistence.
 
 ```
        +---------------------------------------------+
@@ -34,7 +36,7 @@ This service follows the industry-standard **Contract-First (Schema-First)** SOA
                              |
                              v
        +---------------------------------------------+
-       |   3. Spring-WS Endpoint & Service Layer     |
+       |   3. Spring-WS Endpoint & Web Service       |
        |      @Endpoint & @PayloadRoot Routing       |
        +---------------------------------------------+
               |                              |
@@ -44,64 +46,117 @@ This service follows the industry-standard **Contract-First (Schema-First)** SOA
 |    USGS Real-Time GeoJSON API |  |    DefaultWsdl11Definition |
 |    (https://earthquake.usgs)  |  |    (/ws/earthquake.wsdl)    |
 +-------------------------------+  +-----------------------------+
+              |
+              +-----------------------+
+              |                       |
+              v                       v
++-----------------------------+  +-------------------------------+
+| 6. PostgreSQL Persistence   |  | 7. Scheduled Alert Worker     |
+|    - alert_subscriptions    |  |    - Polling interval: 5 min  |
+|    - resource_dispatches    |  |    - Match & Deduplication    |
+|    - notified_quakes        |  |    - Azure Communication Mail |
++-----------------------------+  +-------------------------------+
 ```
 
-### Flow Breakdown:
-1. **Contract Definition (`src/main/resources/earthquake.xsd`)**: The service contract is established using XML Schema Definitions (XSD) without dependency on Java code. It specifies the messages, complex types (`earthquakeInfo`), enumerations (`resourceType`), and validation rules.
-2. **JAXB Class Compilation**: During Maven's `generate-sources` phase, the `jaxb2-maven-plugin` (v3.2.0) translates `earthquake.xsd` into Java source code with `jakarta.xml.bind` annotations in `target/generated-sources/jaxb`.
-3. **Endpoint Routing (`EarthquakeEndpoint.java`)**: Incoming SOAP envelopes are processed by Spring-WS's `MessageDispatcherServlet` (mapped to `/ws/*`). Requests are unmarshalled into JAXB objects and routed to methods annotated with `@PayloadRoot`.
-4. **Dynamic WSDL Publishing (`WebServiceConfig.java`)**: Using `DefaultWsdl11Definition` and `wsdl4j`, Spring-WS generates the WSDL 1.1 document dynamically from the XSD, published at `http://localhost:8080/ws/earthquake.wsdl`.
+---
+
+## 3. Database Schema (Azure PostgreSQL Flexible Server)
+
+The application uses **Spring Data JPA** and Hibernate to map and manage entity persistence. When deployed against Azure Database for PostgreSQL (or local PostgreSQL), Hibernate automatically synchronizes the following relational schema:
+
+### 1. Table: `alert_subscriptions`
+Stores active responder and agency alert profiles.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `VARCHAR(64)` | `PRIMARY KEY` | Unique subscription identifier (e.g. `SUB-FF0CF3D1`) |
+| `subscriber_name` | `VARCHAR(256)` | `NOT NULL` | Name of responder, coordinator, or agency |
+| `subscriber_contact` | `VARCHAR(256)` | `NOT NULL` | Email address for alerts |
+| `min_magnitude_threshold` | `DOUBLE PRECISION` | `NOT NULL` | Minimum Richter magnitude triggering an alert |
+| `region` | `VARCHAR(256)` | `NULL` | Monitored region or fault zone (or `Global`) |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | Registration timestamp |
+| `active` | `BOOLEAN` | `NOT NULL` | Active status flag |
+
+### 2. Table: `subscription_notified_quakes`
+Manages deduplication to prevent duplicate alerts from being sent to subscribers across polling cycles.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| `subscription_id` | `VARCHAR(64)` | `FOREIGN KEY REFERENCES alert_subscriptions(id)` | Associated subscription |
+| `earthquake_id` | `VARCHAR(64)` | `NOT NULL` | USGS event ID (e.g. `nc75433332`) |
+| Primary Key | Composite | `(subscription_id, earthquake_id)` | Prevents duplicate alert records |
+
+### 3. Table: `resource_dispatches`
+Stores emergency logistics dispatch actions and tracking data.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `VARCHAR(64)` | `PRIMARY KEY` | Unique dispatch ID (e.g. `DISP-17796F93`) |
+| `earthquake_id` | `VARCHAR(64)` | `NOT NULL` | Correlated earthquake event ID |
+| `resource_type` | `VARCHAR(32)` | `NOT NULL` | Type: `MEDICAL`, `RESCUE`, `SHELTER`, `SUPPLIES` |
+| `quantity` | `INTEGER` | `NOT NULL` | Unit quantity dispatched |
+| `destination_region` | `VARCHAR(256)` | `NOT NULL` | Target relief camp or destination |
+| `status` | `VARCHAR(32)` | `NOT NULL` | Current status (`DISPATCHED`) |
+| `estimated_arrival_hours` | `DOUBLE PRECISION` | `NOT NULL` | Estimated transit arrival in hours |
+| `created_at` | `TIMESTAMP WITH TIME ZONE` | `NOT NULL` | Dispatch timestamp |
 
 ---
 
-## 3. External Real-Time API Integration
+## 4. Scheduled Alert Polling & Email Dispatch Flow
 
-### USGS Earthquake Hazards Program API
-- **Endpoint Used**:
-  - Hourly Feed: `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_hour.geojson`
-  - Daily Feed: `https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson`
-- **Why this API was chosen**:
-  - **Authority & Reliability**: Operated by the USGS, the world's foremost scientific agency for seismic monitoring.
-  - **Real-Time Data**: Global seismic events are posted within minutes or seconds of sensor network detection.
-  - **Zero Authentication / Public Access**: High availability without API keys or rate-limiting quotas, ideal for cloud computing demos and educational projects.
-  - **GeoJSON Standard**: Provides structured coordinates (`[longitude, latitude, depthKm]`), magnitude (`mag`), and millisecond UTC timestamps (`time`).
-- **Resilience & Fallback Strategy**:
-  - If a user queries for recent events within 1 hour and the hourly feed is sparse (0 matching events), the service automatically falls back to the 24-hour feed to ensure responders receive recent situational context.
+1. **Scheduling**: Enabled via Spring's `@EnableScheduling`. The worker (`ScheduledAlertPollingJob`) runs periodically on a configurable interval (`alert.polling.interval-ms`, default 5 minutes).
+2. **Data Ingestion**: Pulls recent earthquakes from the USGS Real-Time GeoJSON API for the last 2 hours.
+3. **Target Evaluation**: Retrieves all active subscriptions (`findByActiveTrue()`).
+4. **Matching Rules**:
+   - **Magnitude**: `earthquake.magnitude >= subscription.minMagnitudeThreshold`.
+   - **Region**: If `subscription.region` is `Global` or empty, matches globally; otherwise performs case-insensitive containment matching against `earthquake.place`.
+   - **Deduplication**: Checks if `subscription.notifiedEarthquakeIds` already contains `earthquake.id`. If already notified, skips immediately.
+5. **Alert Delivery**:
+   - Compiles a responsive, dark-themed HTML alert and plaintext email with severity badges, UTC timestamps, epicenter coordinates, depth, and USGS event links.
+   - If `ACS_CONNECTION_STRING` is configured, dispatches email via Azure Communication Services.
+   - If contact is invalid email, logs a warning and gracefully skips.
+   - If `ACS_CONNECTION_STRING` is empty, logs simulated mock email output cleanly without errors.
+6. **State Persistence**: Records the earthquake ID in `subscription_notified_quakes` and persists the updated entity.
 
 ---
 
-## 4. How to Run Locally
+## 5. How to Run Locally
 
 ### Prerequisites:
-- **JDK 17** (or JDK 17+ installed on your PATH)
-- **Maven** (the project includes the Maven Wrapper `./mvnw` / `mvnw.cmd`)
+- **JDK 17+**
+- **PostgreSQL** (running locally on port 5432, e.g., database `earthquakedb`)
+- **Maven** (included via `./mvnw` / `mvnw.cmd`)
 
-### Step 1: Clean and Compile (Triggers JAXB Generation)
+### Step 1: Run Automated Tests (Hermetic in-memory H2)
 ```bash
-# On Windows PowerShell / CMD:
-.\mvnw.cmd clean compile
+# On Windows:
+$env:MAVEN_OPTS="-Xmx384m -XX:MaxMetaspaceSize=192m"; .\mvnw.cmd test
 
 # On Linux / macOS:
-./mvnw clean compile
+export MAVEN_OPTS="-Xmx384m -XX:MaxMetaspaceSize=192m" && ./mvnw test
 ```
 
-### Step 2: Run Automated Tests
+### Step 2: Run Against Local PostgreSQL
+Ensure PostgreSQL is running locally with database `earthquakedb`:
 ```bash
-.\mvnw.cmd test
-```
-
-### Step 3: Run the Spring Boot Application
-```bash
+# On Windows PowerShell:
+$env:DB_HOST="localhost"; $env:DB_PORT="5432"; $env:DB_NAME="earthquakedb"; $env:DB_USER="postgres"; $env:DB_PASSWORD="yourpassword"
 .\mvnw.cmd spring-boot:run
+
+# On Linux / macOS:
+export DB_HOST=localhost DB_PORT=5432 DB_NAME=earthquakedb DB_USER=postgres DB_PASSWORD=yourpassword
+./mvnw spring-boot:run
 ```
-The server will start on port `8080`.
+
+Access the application in your browser:
+- **Operations Console UI**: `http://localhost:8080/`
+- **WSDL Document**: `http://localhost:8080/ws/earthquake.wsdl`
 
 ---
 
-## 5. Testing the SOAP Web Service
+## 6. Testing the SOAP Web Service
 
 ### 1. View WSDL Contract
-Open your browser or run:
 ```bash
 curl -i http://localhost:8080/ws/earthquake.wsdl
 ```
@@ -109,9 +164,9 @@ curl -i http://localhost:8080/ws/earthquake.wsdl
 ---
 
 ### 2. Operation: `getRecentEarthquakes`
-Retrieves live earthquake events filtered by magnitude $\ge 2.5$ and occurred within the last 12 hours.
+Retrieves live earthquake events filtered by magnitude $\ge 2.5$ within the last 12 hours.
 
-**Endpoint**: `POST http://localhost:8080/ws`  
+**Endpoint**: `POST http://localhost:8080/ws/`  
 **Header**: `Content-Type: text/xml; charset=utf-8`
 
 #### Sample Request XML:
@@ -128,46 +183,10 @@ Retrieves live earthquake events filtered by magnitude $\ge 2.5$ and occurred wi
 </soapenv:Envelope>
 ```
 
-#### Sample cURL Command (PowerShell / Bash):
-```bash
-curl -X POST http://localhost:8080/ws \
-  -H "Content-Type: text/xml; charset=utf-8" \
-  -d "<soapenv:Envelope xmlns:soapenv='http://schemas.xmlsoap.org/soap/envelope/' xmlns:ear='http://com.alok/earthquake_soap_service'><soapenv:Header/><soapenv:Body><ear:getRecentEarthquakesRequest><ear:minMagnitude>2.5</ear:minMagnitude><ear:timeRangeHours>12</ear:timeRangeHours></ear:getRecentEarthquakesRequest></soapenv:Body></soapenv:Envelope>"
-```
-
-#### Sample Response XML:
-```xml
-<SOAP-ENV:Envelope xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-   <SOAP-ENV:Header/>
-   <SOAP-ENV:Body>
-      <ns2:getRecentEarthquakesResponse xmlns:ns2="http://com.alok/earthquake_soap_service">
-         <ns2:earthquakes>
-            <ns2:id>us7000tgf2</ns2:id>
-            <ns2:magnitude>5.3</ns2:magnitude>
-            <ns2:place>83 km E of Lospalos, Timor Leste</ns2:place>
-            <ns2:timeUTC>2026-09-10T18:44:40.243Z</ns2:timeUTC>
-            <ns2:latitude>-8.5914</ns2:latitude>
-            <ns2:longitude>127.7505</ns2:longitude>
-            <ns2:depthKm>10.0</ns2:depthKm>
-         </ns2:earthquakes>
-         <ns2:earthquakes>
-            <ns2:id>us7000tgb4</ns2:id>
-            <ns2:magnitude>4.5</ns2:magnitude>
-            <ns2:place>84 km SW of Puerto Madero, Mexico</ns2:place>
-            <ns2:timeUTC>2026-09-10T13:29:03.015Z</ns2:timeUTC>
-            <ns2:latitude>14.0976</ns2:latitude>
-            <ns2:longitude>-92.8815</ns2:longitude>
-            <ns2:depthKm>10.0</ns2:depthKm>
-         </ns2:earthquakes>
-      </ns2:getRecentEarthquakesResponse>
-   </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>
-```
-
 ---
 
 ### 3. Operation: `subscribeToAlert`
-Subscribes an emergency agency to regional alerts exceeding a specific magnitude.
+Subscribes an emergency agency to regional alerts exceeding a specific magnitude. Automatically persisted to PostgreSQL and evaluated by the scheduled worker.
 
 #### Sample Request XML:
 ```xml
@@ -176,20 +195,13 @@ Subscribes an emergency agency to regional alerts exceeding a specific magnitude
    <soapenv:Header/>
    <soapenv:Body>
       <ear:subscribeToAlertRequest>
-         <ear:subscriberName>Dr. Sarah Connor</ear:subscriberName>
-         <ear:subscriberContact>s.connor@fema.gov</ear:subscriberContact>
-         <ear:minMagnitudeThreshold>4.0</ear:minMagnitudeThreshold>
-         <ear:region>San Andreas Fault Zone</ear:region>
+         <ear:subscriberName>Dr. Elena Rostova</ear:subscriberName>
+         <ear:subscriberContact>elena.rostova@seismic-safety.org</ear:subscriberContact>
+         <ear:minMagnitudeThreshold>3.0</ear:minMagnitudeThreshold>
+         <ear:region>California</ear:region>
       </ear:subscribeToAlertRequest>
    </soapenv:Body>
 </soapenv:Envelope>
-```
-
-#### Sample cURL Command:
-```bash
-curl -X POST http://localhost:8080/ws \
-  -H "Content-Type: text/xml; charset=utf-8" \
-  -d "<soapenv:Envelope xmlns:soapenv='http://schemas.xmlsoap.org/soap/envelope/' xmlns:ear='http://com.alok/earthquake_soap_service'><soapenv:Header/><soapenv:Body><ear:subscribeToAlertRequest><ear:subscriberName>Dr. Sarah Connor</ear:subscriberName><ear:subscriberContact>s.connor@fema.gov</ear:subscriberContact><ear:minMagnitudeThreshold>4.0</ear:minMagnitudeThreshold><ear:region>San Andreas Fault Zone</ear:region></ear:subscribeToAlertRequest></soapenv:Body></soapenv:Envelope>"
 ```
 
 #### Sample Response XML:
@@ -198,9 +210,9 @@ curl -X POST http://localhost:8080/ws \
    <SOAP-ENV:Header/>
    <SOAP-ENV:Body>
       <ns2:subscribeToAlertResponse xmlns:ns2="http://com.alok/earthquake_soap_service">
-         <ns2:subscriptionId>SUB-4B6B615A</ns2:subscriptionId>
+         <ns2:subscriptionId>SUB-FF0CF3D1</ns2:subscriptionId>
          <ns2:status>ACTIVE</ns2:status>
-         <ns2:message>Subscription created successfully for Dr. Sarah Connor (s.connor@fema.gov). Monitoring region 'San Andreas Fault Zone' for seismic activity &gt;= 4.0 magnitude.</ns2:message>
+         <ns2:message>Subscription created successfully for Dr. Elena Rostova (elena.rostova@seismic-safety.org). Monitoring region 'California' for seismic activity &gt;= 3.0 magnitude.</ns2:message>
       </ns2:subscribeToAlertResponse>
    </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
@@ -209,7 +221,7 @@ curl -X POST http://localhost:8080/ws \
 ---
 
 ### 4. Operation: `dispatchResource`
-Simulates dispatching disaster relief resources (`MEDICAL`, `RESCUE`, `SHELTER`, `SUPPLIES`).
+Dispatches disaster relief resources (`MEDICAL`, `RESCUE`, `SHELTER`, `SUPPLIES`), persisting the action to PostgreSQL.
 
 #### Sample Request XML:
 ```xml
@@ -219,19 +231,12 @@ Simulates dispatching disaster relief resources (`MEDICAL`, `RESCUE`, `SHELTER`,
    <soapenv:Body>
       <ear:dispatchResourceRequest>
          <ear:earthquakeId>us7000tgf2</ear:earthquakeId>
-         <ear:resourceType>RESCUE</ear:resourceType>
-         <ear:quantity>12</ear:quantity>
-         <ear:destinationRegion>Sector 7 Coastal Relief Camp</ear:destinationRegion>
+         <ear:resourceType>MEDICAL</ear:resourceType>
+         <ear:quantity>50</ear:quantity>
+         <ear:destinationRegion>Zone 4 Disaster Shelter</ear:destinationRegion>
       </ear:dispatchResourceRequest>
    </soapenv:Body>
 </soapenv:Envelope>
-```
-
-#### Sample cURL Command:
-```bash
-curl -X POST http://localhost:8080/ws \
-  -H "Content-Type: text/xml; charset=utf-8" \
-  -d "<soapenv:Envelope xmlns:soapenv='http://schemas.xmlsoap.org/soap/envelope/' xmlns:ear='http://com.alok/earthquake_soap_service'><soapenv:Header/><soapenv:Body><ear:dispatchResourceRequest><ear:earthquakeId>us7000tgf2</ear:earthquakeId><ear:resourceType>RESCUE</ear:resourceType><ear:quantity>12</ear:quantity><ear:destinationRegion>Sector 7 Coastal Relief Camp</ear:destinationRegion></ear:dispatchResourceRequest></soapenv:Body></soapenv:Envelope>"
 ```
 
 #### Sample Response XML:
@@ -240,10 +245,10 @@ curl -X POST http://localhost:8080/ws \
    <SOAP-ENV:Header/>
    <SOAP-ENV:Body>
       <ns2:dispatchResourceResponse xmlns:ns2="http://com.alok/earthquake_soap_service">
-         <ns2:dispatchId>DISP-DF544B8F</ns2:dispatchId>
+         <ns2:dispatchId>DISP-17796F93</ns2:dispatchId>
          <ns2:status>DISPATCHED</ns2:status>
-         <ns2:estimatedArrivalHours>3.8</ns2:estimatedArrivalHours>
-         <ns2:message>Emergency response active: 12 units of RESCUE successfully dispatched to 'Sector 7 Coastal Relief Camp' in response to earthquake [us7000tgf2]. Estimated arrival in 3.8 hours.</ns2:message>
+         <ns2:estimatedArrivalHours>3.4</ns2:estimatedArrivalHours>
+         <ns2:message>Emergency response active: 50 units of MEDICAL successfully dispatched to 'Zone 4 Disaster Shelter' in response to earthquake [us7000tgf2]. Estimated arrival in 3.4 hours.</ns2:message>
       </ns2:dispatchResourceResponse>
    </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>
@@ -251,60 +256,82 @@ curl -X POST http://localhost:8080/ws \
 
 ---
 
-## 6. Microsoft Azure App Service Deployment
+## 7. Azure Deployment Guide (PostgreSQL, ACS & App Service)
 
-The project is pre-configured with `azure-webapp-maven-plugin` (version 2.13.0) for Linux Java 17 App Service.
+Follow these step-by-step Azure CLI commands to deploy the complete architecture to Microsoft Azure:
 
-### Step 1: Login to Azure CLI
+### Step 1: Login and Create Resource Group
 ```bash
 az login
+az group create --name rg-earthquake-service --location eastus
 ```
 
-### Step 2: Configure Deployment Placeholders in `pom.xml`
-In `pom.xml`, update the `<configuration>` block under `azure-webapp-maven-plugin`:
-```xml
-<configuration>
-    <schemaVersion>v2</schemaVersion>
-    <subscriptionId>YOUR_AZURE_SUBSCRIPTION_ID</subscriptionId>
-    <resourceGroup>YOUR_RESOURCE_GROUP_NAME</resourceGroup>
-    <appName>earthquake-soap-service-app</appName> <!-- Must be globally unique -->
-    <pricingTier>B1</pricingTier> <!-- Or F1 for Free Tier -->
-    <region>eastus</region>
-    <runtime>
-        <os>Linux</os>
-        <javaVersion>Java 17</javaVersion>
-        <webContainer>Java SE</webContainer>
-    </runtime>
-</configuration>
+### Step 2: Create Azure Database for PostgreSQL Flexible Server
+```bash
+az postgres flexible-server create \
+  --resource-group rg-earthquake-service \
+  --name earthquake-psql-server \
+  --location eastus \
+  --admin-user psqladmin \
+  --admin-password 'YourStrongPassword123!' \
+  --sku-name Standard_B1ms \
+  --tier Burstable \
+  --version 16 \
+  --storage-size 32 \
+  --database-name earthquakedb
+
+# Allow connections from all Azure cloud services
+az postgres flexible-server firewall-rule create \
+  --resource-group rg-earthquake-service \
+  --name earthquake-psql-server \
+  --rule-name AllowAllAzureServices \
+  --start-ip-address 0.0.0.0 \
+  --end-ip-address 0.0.0.0
 ```
 
-### Step 3: Package & Deploy
+### Step 3: Create Azure Communication Services Resource
+```bash
+# 1. Create Communication Service
+az communication create \
+  --name earthquake-comm-service \
+  --location "Global" \
+  --data-location "United States" \
+  --resource-group rg-earthquake-service
+
+# 2. Retrieve Connection String
+az communication list-key \
+  --name earthquake-comm-service \
+  --resource-group rg-earthquake-service \
+  --query primaryConnectionString -o tsv
+```
+*(Optional: In the Azure Portal, create an Email Communication Service domain or Azure Managed Domain, e.g. `DoNotReply@<unique-id>.azurecomm.net`, and link it to your Communication Service).*
+
+### Step 4: Configure App Service Settings
+Set the database and ACS environment variables on your Azure App Service:
+```bash
+az webapp config appsettings set \
+  --resource-group rg-earthquake-service \
+  --name <your-unique-app-name> \
+  --settings \
+    DB_HOST="earthquake-psql-server.postgres.database.azure.com" \
+    DB_PORT="5432" \
+    DB_NAME="earthquakedb" \
+    DB_USER="psqladmin" \
+    DB_PASSWORD="YourStrongPassword123!" \
+    DB_SSL_MODE="require" \
+    ACS_CONNECTION_STRING="<your_acs_primary_connection_string>" \
+    ACS_SENDER_ADDRESS="DoNotReply@<your-domain>.azurecomm.net"
+```
+
+### Step 5: Package and Deploy
 ```bash
 # Package the executable JAR
-.\mvnw.cmd clean package -DskipTests
+$env:MAVEN_OPTS="-Xmx384m -XX:MaxMetaspaceSize=192m"; .\mvnw.cmd clean package
 
-# Deploy to Azure App Service
+# Deploy using azure-webapp-maven-plugin
 .\mvnw.cmd azure-webapp:deploy
 ```
 
-Once deployed, access your cloud WSDL at:
-`https://<your-app-name>.azurewebsites.net/ws/earthquake.wsdl`
-
----
-
-## 7. Spring Boot 3.x Dependency Compatibility Analysis
-
-When building contract-first SOAP web services on Spring Boot 3.x, several critical dependency and package version shifts must be observed:
-
-| Component / Dependency | Spring Boot 2.x Legacy | Spring Boot 3.x Required | Current Project Status |
-|---|---|---|---|
-| **Spring Boot Framework** | 2.7.x | **3.4.3** | Configured in `<parent>` |
-| **Java Baseline** | Java 8 / 11 | **Java 17 minimum** | Set via `<java.version>17</java.version>` |
-| **XML Namespace** | `javax.xml.bind.*` | **`jakarta.xml.bind.*`** | Fully migrated |
-| **JAXB API** | `javax.xml.bind:jaxb-api` | **`jakarta.xml.bind:jakarta.xml.bind-api:4.x`** | Managed by Spring Boot 3 parent |
-| **JAXB Maven Plugin** | `jaxb2-maven-plugin:2.5.0` | **`jaxb2-maven-plugin:3.2.0`** | Version 3.2.0 configured |
-| **WSDL Library** | `wsdl4j:1.6.3` | **`wsdl4j:1.6.3`** | Added for dynamic WSDL generation |
-| **Web Services Starter** | `spring-boot-starter-web-services` | **`spring-boot-starter-web-services`** | Spring-WS 4.x compatible |
-
-> **Crucial Incompatibility Note for Students**:
-> If you downgrade or use `jaxb2-maven-plugin` version 2.x (e.g. 2.5.0), it will generate classes referencing `javax.xml.bind.*`. In Spring Boot 3.x, `javax.xml.bind` packages were replaced by Jakarta EE 10 (`jakarta.xml.bind.*`), causing `ClassNotFoundException` or compilation errors. Version `3.2.0` of `jaxb2-maven-plugin` must always be used with Spring Boot 3.x.
+Once deployed, access your live cloud service at:
+- **Web UI**: `https://<your-app-name>.azurewebsites.net/`
+- **WSDL Contract**: `https://<your-app-name>.azurewebsites.net/ws/earthquake.wsdl`
