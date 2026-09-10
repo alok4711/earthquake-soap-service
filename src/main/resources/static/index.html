@@ -14,22 +14,24 @@
 
   <style>
     :root {
-      --bg-page: #f8fafc;
-      --bg-surface: #ffffff;
-      --border: #e2e8f0;
-      --border-focus: #2563eb;
-      --text-main: #0f172a;
-      --text-muted: #475569;
-      --text-light: #64748b;
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --primary-light: #eff6ff;
-      --success-bg: #f0fdf4;
-      --success-text: #166534;
-      --success-border: #bbf7d0;
-      --error-bg: #fef2f2;
-      --error-text: #991b1b;
-      --error-border: #fecaca;
+      --bg-page: #1a1d24;
+      --bg-surface: #232731;
+      --bg-subtle: #1c2027;
+      --border: #323846;
+      --border-focus: #3b82f6;
+      --text-main: #e4e6eb;
+      --text-muted: #94a3b8;
+      --text-light: #8592a6;
+      --primary: #3b82f6;
+      --primary-hover: #60a5fa;
+      --primary-light: rgba(59, 130, 246, 0.14);
+      --primary-border: rgba(59, 130, 246, 0.3);
+      --success-bg: rgba(34, 197, 94, 0.12);
+      --success-text: #4ade80;
+      --success-border: rgba(74, 222, 128, 0.25);
+      --error-bg: rgba(239, 68, 68, 0.12);
+      --error-text: #f87171;
+      --error-border: rgba(248, 113, 113, 0.25);
       --font-main: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       --font-mono: 'JetBrains Mono', monospace;
     }
@@ -50,7 +52,7 @@
       line-height: 1.5;
     }
 
-    /* Clean Light Header */
+    /* Soft Dark Header */
     header.app-header {
       background: var(--bg-surface);
       border-bottom: 1px solid var(--border);
@@ -81,7 +83,8 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--primary);
+      color: var(--primary-hover);
+      border: 1px solid var(--primary-border);
     }
 
     .brand-icon svg {
@@ -107,10 +110,10 @@
       font-size: 0.7rem;
       font-weight: 600;
       background: var(--primary-light);
-      color: var(--primary);
+      color: var(--primary-hover);
       padding: 0.15rem 0.5rem;
       border-radius: 4px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--primary-border);
     }
 
     .header-links {
@@ -121,7 +124,7 @@
     }
 
     .link-wsdl {
-      color: var(--primary);
+      color: var(--primary-hover);
       text-decoration: none;
       font-weight: 500;
       display: inline-flex;
@@ -130,13 +133,14 @@
       padding: 0.4rem 0.75rem;
       border-radius: 6px;
       border: 1px solid var(--border);
-      background: var(--bg-surface);
+      background: var(--bg-subtle);
       transition: all 0.15s;
     }
 
     .link-wsdl:hover {
       background: var(--primary-light);
-      border-color: #bfdbfe;
+      border-color: var(--primary-border);
+      color: #ffffff;
     }
 
     /* Metrics Summary Bar */
@@ -207,14 +211,14 @@
 
     .tab-btn:hover {
       color: var(--text-main);
-      background: rgba(37, 99, 235, 0.04);
+      background: rgba(255, 255, 255, 0.04);
     }
 
     .tab-btn.active {
-      color: var(--primary);
+      color: var(--primary-hover);
       font-weight: 600;
       border-bottom-color: var(--primary);
-      background: rgba(37, 99, 235, 0.06);
+      background: rgba(59, 130, 246, 0.08);
     }
 
     .tab-btn svg {
@@ -226,7 +230,7 @@
       font-size: 0.72rem;
       padding: 0.1rem 0.45rem;
       border-radius: 10px;
-      background: var(--border);
+      background: #2d3340;
       color: var(--text-muted);
       font-weight: 600;
     }
@@ -254,7 +258,7 @@
       display: block;
     }
 
-    /* Clean Card / Section */
+    /* Soft Dark Cards */
     .card {
       background: var(--bg-surface);
       border: 1px solid var(--border);
@@ -289,7 +293,7 @@
       font-family: var(--font-mono);
       font-size: 0.75rem;
       padding: 0.2rem 0.5rem;
-      background: #f1f5f9;
+      background: var(--bg-subtle);
       color: var(--text-muted);
       border-radius: 4px;
       border: 1px solid var(--border);
@@ -324,18 +328,23 @@
       font-size: 0.9rem;
       font-family: inherit;
       color: var(--text-main);
-      background: var(--bg-surface);
-      transition: border-color 0.15s;
+      background: var(--bg-subtle);
+      transition: border-color 0.15s, box-shadow 0.15s;
     }
 
     .form-input:focus {
       outline: none;
       border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
     }
 
     select.form-input {
       cursor: pointer;
+    }
+
+    select.form-input option {
+      background: var(--bg-surface);
+      color: var(--text-main);
     }
 
     /* Buttons */
@@ -361,15 +370,16 @@
 
     .btn-primary:hover {
       background: var(--primary-hover);
+      color: #0f172a;
     }
 
     .btn-primary:disabled {
-      opacity: 0.6;
+      opacity: 0.5;
       cursor: not-allowed;
     }
 
     .btn-sm {
-      background: var(--bg-surface);
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       color: var(--text-main);
       padding: 0.35rem 0.75rem;
@@ -381,8 +391,8 @@
     }
 
     .btn-sm:hover {
-      background: #f1f5f9;
-      border-color: #cbd5e1;
+      background: #2b313d;
+      border-color: #3e4656;
     }
 
     /* Banners */
@@ -423,7 +433,7 @@
     }
 
     table.data-table th {
-      background: #f8fafc;
+      background: var(--bg-subtle);
       padding: 0.75rem 1rem;
       font-weight: 600;
       color: var(--text-muted);
@@ -444,10 +454,10 @@
     }
 
     table.data-table tr:hover td {
-      background: #f8fafc;
+      background: #2a2f3a;
     }
 
-    /* Calm Magnitude Badges */
+    /* Magnitude Badges (Soft Dark Theme) */
     .badge-mag {
       display: inline-block;
       min-width: 44px;
@@ -459,15 +469,15 @@
       font-family: var(--font-mono);
     }
 
-    .mag-low { background: #dcfce7; color: #15803d; }
-    .mag-mid { background: #fef9c3; color: #854d0e; }
-    .mag-high { background: #fed7aa; color: #9a3412; }
-    .mag-severe { background: #fee2e2; color: #991b1b; }
+    .mag-low { background: rgba(34, 197, 94, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.3); }
+    .mag-mid { background: rgba(234, 179, 8, 0.15); color: #facc15; border: 1px solid rgba(250, 204, 21, 0.3); }
+    .mag-high { background: rgba(249, 115, 22, 0.15); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.3); }
+    .mag-severe { background: rgba(239, 68, 68, 0.18); color: #f87171; border: 1px solid rgba(248, 113, 113, 0.35); }
 
     .btn-table-action {
       background: var(--primary-light);
-      color: var(--primary);
-      border: 1px solid #bfdbfe;
+      color: var(--primary-hover);
+      border: 1px solid var(--primary-border);
       padding: 0.3rem 0.65rem;
       border-radius: 4px;
       font-size: 0.78rem;
@@ -486,7 +496,7 @@
     .result-panel {
       margin-top: 1.25rem;
       padding: 1rem 1.25rem;
-      background: #f8fafc;
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: 6px;
       font-size: 0.88rem;
@@ -522,7 +532,7 @@
       color: var(--text-muted);
       margin-top: 0.5rem;
       padding-top: 0.5rem;
-      border-top: 1px solid #e2e8f0;
+      border-top: 1px solid var(--border);
       line-height: 1.4;
     }
 
@@ -537,7 +547,7 @@
     .soap-inspector-btn {
       width: 100%;
       padding: 0.6rem 1rem;
-      background: #f8fafc;
+      background: var(--bg-subtle);
       border: none;
       text-align: left;
       font-family: inherit;
@@ -551,7 +561,7 @@
     }
 
     .soap-inspector-btn:hover {
-      background: #f1f5f9;
+      background: #282d38;
     }
 
     .soap-inspector-content {
@@ -570,13 +580,13 @@
     }
 
     .xml-box {
-      background: #f8fafc;
+      background: #14171e;
       border: 1px solid var(--border);
       border-radius: 4px;
       padding: 0.75rem;
       font-family: var(--font-mono);
       font-size: 0.75rem;
-      color: var(--text-main);
+      color: #cbd5e1;
       max-height: 220px;
       overflow-y: auto;
       white-space: pre-wrap;
@@ -608,7 +618,7 @@
       gap: 0.75rem;
       margin-bottom: 1rem;
       padding: 0.75rem 1rem;
-      background: #f8fafc;
+      background: var(--bg-subtle);
       border: 1px solid var(--border);
       border-radius: 6px;
     }
@@ -646,11 +656,11 @@
     .globe-badge {
       font-size: 0.78rem;
       font-weight: 600;
-      color: var(--primary);
+      color: var(--primary-hover);
       background: var(--primary-light);
       padding: 0.25rem 0.6rem;
       border-radius: 4px;
-      border: 1px solid #bfdbfe;
+      border: 1px solid var(--primary-border);
     }
 
     .globe-container-wrapper {
@@ -658,7 +668,7 @@
       border-radius: 8px;
       overflow: hidden;
       border: 1px solid var(--border);
-      background: #020617;
+      background: #0b0e14;
       min-height: 580px;
       width: 100%;
     }
@@ -673,7 +683,7 @@
       bottom: 12px;
       left: 50%;
       transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.8);
+      background: rgba(15, 23, 42, 0.85);
       color: #e2e8f0;
       font-size: 0.75rem;
       padding: 0.35rem 0.85rem;
@@ -696,7 +706,7 @@
     }
 
     footer.app-footer a {
-      color: var(--primary);
+      color: var(--primary-hover);
       text-decoration: none;
     }
 
@@ -887,10 +897,10 @@
       <!-- Globe Toolbar & Controls -->
       <div class="globe-toolbar">
         <div class="globe-legend">
-          <span class="legend-item"><span class="legend-dot" style="background: #22c55e;"></span> &lt; 3.0 Low</span>
-          <span class="legend-item"><span class="legend-dot" style="background: #eab308;"></span> 3.0 – 4.5 Moderate</span>
-          <span class="legend-item"><span class="legend-dot" style="background: #f97316;"></span> 4.5 – 6.0 Strong</span>
-          <span class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> &ge; 6.0 Severe</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #4ade80;"></span> &lt; 3.0 Low</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span> 3.0 – 4.5 Moderate</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span> 4.5 – 6.0 Strong</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span> &ge; 6.0 Severe</span>
         </div>
 
         <div class="globe-actions">
@@ -964,7 +974,7 @@
           </div>
           <div class="result-item">
             <span class="result-label">Status</span>
-            <span class="result-value" id="res-sub-status" style="color: #166534;">ACTIVE</span>
+            <span class="result-value" id="res-sub-status" style="color: var(--success-text);">ACTIVE</span>
           </div>
         </div>
         <div class="result-text" id="res-sub-msg"></div>
@@ -1042,7 +1052,7 @@
           </div>
           <div class="result-item">
             <span class="result-label">Status</span>
-            <span class="result-value" id="res-disp-status" style="color: #166534;">DISPATCHED</span>
+            <span class="result-value" id="res-disp-status" style="color: var(--success-text);">DISPATCHED</span>
           </div>
           <div class="result-item">
             <span class="result-label">Estimated Arrival</span>
@@ -1220,10 +1230,10 @@
     }
 
     function getPointColor(mag) {
-      if (mag < 3.0) return '#22c55e';
-      if (mag < 4.5) return '#eab308';
-      if (mag < 6.0) return '#f97316';
-      return '#ef4444';
+      if (mag < 3.0) return '#4ade80';
+      if (mag < 4.5) return '#facc15';
+      if (mag < 6.0) return '#fb923c';
+      return '#f87171';
     }
 
     // Pre-fill Dispatch Form when clicking "Dispatch" on an earthquake row or globe event
@@ -1266,7 +1276,7 @@
         .pointRadius(d => Math.max(0.28, d.magnitude * 0.08))
         .pointColor(d => getPointColor(d.magnitude))
         .pointLabel(d => `
-          <div style="background: rgba(15, 23, 42, 0.95); color: #ffffff; padding: 10px 14px; border-radius: 8px; font-family: Inter, sans-serif; font-size: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; line-height: 1.4; max-width: 280px;">
+          <div style="background: rgba(26, 29, 36, 0.95); color: #e4e6eb; padding: 10px 14px; border-radius: 8px; font-family: Inter, sans-serif; font-size: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.6); border: 1px solid rgba(255,255,255,0.12); pointer-events: none; line-height: 1.4; max-width: 280px;">
             <div style="font-weight: 700; font-size: 13px; color: #60a5fa; margin-bottom: 3px;">
               Magnitude ${d.magnitude.toFixed(1)} &bull; ${escapeHtml(d.place)}
             </div>
