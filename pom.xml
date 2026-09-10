@@ -84,6 +84,15 @@
 				</configuration>
 			</plugin>
 
+			<!-- Surefire Plugin configured for modern JDK agent loading -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-XX:+EnableDynamicAgentLoading</argLine>
+				</configuration>
+			</plugin>
+
 			<!-- Azure App Service Deployment Plugin -->
 			<plugin>
 				<groupId>com.microsoft.azure</groupId>

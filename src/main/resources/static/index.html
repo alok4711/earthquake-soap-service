@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SEISMIC RESPONSE CONSOLE | Real-Time Earthquake Alert & Emergency Dispatch</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ef4444'%3E%3Cpath d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #151d30;
+      --bg-card-hover: #1c263e;
+      --bg-input: #0d1322;
+      --border-color: #24324f;
+      --border-focus: #3b82f6;
+      --text-main: #f3f4f6;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --accent-blue: #38bdf8;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-green: #10b981;
+      --accent-purple: #a855f7;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(239, 68, 68, 0.04) 0%, transparent 40%);
+    }
+
+    /* Top Navigation / Command Header */
+    header.command-header {
+      background: rgba(17, 24, 39, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .radar-beacon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(245, 158, 11, 0.15));
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    .radar-beacon svg {
+      width: 24px;
+      height: 24px;
+      fill: var(--accent-red);
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.9; }
+      50% { transform: scale(1.12); opacity: 1; }
+    }
+
+    .brand-text h1 {
+      font-family: var(--font-display);
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-text .badge-cloud {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.15rem 0.45rem;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .brand-text p {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .telemetry-status {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    .btn-wsdl {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+      padding: 0.4rem 0.8rem;
+      border-radius: 6px;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-family: var(--font-mono);
+      transition: all 0.2s;
+    }
+
+    .btn-wsdl:hover {
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--accent-blue);
+      color: #fff;
+    }
+
+    /* Metric Banners */
+    .metrics-container {
+      max-width: 1400px;
+      margin: 1.5rem auto 0;
+      padding: 0 1.5rem;
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .metric-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+    }
+
+    .metric-card.m-blue::before { background: var(--accent-blue); }
+    .metric-card.m-red::before { background: var(--accent-red); }
+    .metric-card.m-amber::before { background: var(--accent-amber); }
+    .metric-card.m-green::before { background: var(--accent-green); }
+
+    .metric-title {
+      font-size: 0.75rem;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+    }
+
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #fff;
+      margin-top: 0.2rem;
+    }
+
+    .metric-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* Main Operations Container */
+    main.main-content {
+      max-width: 1400px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      width: 100%;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.75rem;
+      flex: 1;
+    }
+
+    /* Command Panels */
+    .command-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-header {
+      background: rgba(17, 24, 39, 0.95);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 1.25rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-family: var(--font-display);
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .panel-title svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .badge-op {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--accent-blue);
+    }
+
+    .panel-body {
+      padding: 1.25rem;
+    }
+
+    /* Form Styles */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-label {
+      font-size: 0.76rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-control {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 0.85rem;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 0.88rem;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    select.form-control {
+      cursor: pointer;
+    }
+
+    .btn-submit {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: #fff;
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      padding: 0.65rem 1.25rem;
+      border-radius: 6px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      transition: all 0.2s;
+    }
+
+    .btn-submit:hover {
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      box-shadow: 0 0 12px rgba(59, 130, 246, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-amber {
+      background: linear-gradient(135deg, #d97706, #b45309);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+    .btn-amber:hover {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+
+    .btn-green {
+      background: linear-gradient(135deg, #059669, #047857);
+      border-color: rgba(16, 185, 129, 0.4);
+    }
+    .btn-green:hover {
+      background: linear-gradient(135deg, #10b981, #059669);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.4);
+    }
+
+    /* Notification & Error Banner */
+    .alert-banner {
+      display: none;
+      padding: 0.85rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      align-items: flex-start;
+      gap: 0.6rem;
+      animation: fadeIn 0.3s;
+    }
+
+    .alert-banner.error {
+      display: flex;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
+    }
+
+    .alert-banner.success {
+      display: flex;
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #6ee7b7;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Earthquake Feed Table */
+    .table-responsive {
+      overflow-x: auto;
+      margin-top: 1.25rem;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+    }
+
+    table.seismic-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+
+    table.seismic-table th {
+      background: var(--bg-secondary);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    table.seismic-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(36, 50, 79, 0.6);
+      vertical-align: middle;
+    }
+
+    table.seismic-table tr:hover td {
+      background: var(--bg-card-hover);
+    }
+
+    /* Severity badges */
+    .badge-mag {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      padding: 0.2rem 0;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+    }
+
+    .mag-minor { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .mag-light { background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+    .mag-moderate { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .mag-strong { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .mag-major { background: rgba(220, 38, 38, 0.35); color: #fca5a5; border: 1px solid #ef4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
+
+    .btn-quick-dispatch {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      color: var(--accent-amber);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-family: var(--font-mono);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-quick-dispatch:hover {
+      background: rgba(245, 158, 11, 0.25);
+      color: #fff;
+    }
+
+    /* Result Confirmation Cards */
+    .result-box {
+      margin-top: 1.25rem;
+      padding: 1.15rem;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-family: var(--font-mono);
+      animation: fadeIn 0.3s;
+    }
+
+    .result-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .result-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .result-key {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .result-val {
+      font-size: 0.95rem;
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .result-msg {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-color);
+      padding-top: 0.65rem;
+      line-height: 1.4;
+    }
+
+    /* Two-column layout for operations 2 and 3 */
+    .split-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.75rem;
+    }
+
+    @media (max-width: 900px) {
+      .split-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Live XML Inspector Drawer */
+    .inspector-card {
+      background: #090d15;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      margin-top: 1.5rem;
+      overflow: hidden;
+    }
+
+    .inspector-header {
+      padding: 0.65rem 1rem;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .inspector-header h4 {
+      font-size: 0.78rem;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .inspector-body {
+      padding: 1rem;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 800px) {
+      .inspector-body {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .xml-box {
+      background: #05080e;
+      border: 1px solid #1a263d;
+      border-radius: 4px;
+      padding: 0.75rem;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      color: #93c5fd;
+      max-height: 250px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .xml-label {
+      font-size: 0.68rem;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+      margin-bottom: 0.3rem;
+      text-transform: uppercase;
+    }
+
+    /* Empty state */
+    .empty-state {
+      padding: 3rem 1rem;
+      text-align: center;
+      color: var(--text-dim);
+    }
+
+    .empty-state svg {
+      width: 42px;
+      height: 42px;
+      fill: var(--text-dim);
+      margin-bottom: 0.75rem;
+      opacity: 0.6;
+    }
+
+    /* Footer */
+    footer.app-footer {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      padding: 1.25rem 1.5rem;
+      margin-top: 3rem;
+      font-size: 0.78rem;
+      color: var(--text-dim);
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+
+    footer a {
+      color: var(--accent-blue);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Command Header -->
+  <header class="command-header">
+    <div class="header-inner">
+      <div class="brand-group">
+        <div class="radar-beacon">
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>SEISMIC RESPONSE CONSOLE <span class="badge-cloud">Cloud Computing</span></h1>
+          <p>Real-Time Earthquake Alert & Emergency Resource Dispatch System (Contract-First SOAP)</p>
+        </div>
+      </div>
+
+      <div class="telemetry-status">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          <span>SOAP Service: <strong>Online</strong></span>
+        </div>
+        <div class="status-item">
+          <span>USGS Gateway: <strong>Connected</strong></span>
+        </div>
+        <a href="/ws/earthquake.wsdl" target="_blank" class="btn-wsdl" title="Open Dynamic WSDL Definition">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 19H5V5h7V3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2v-7h-2v7zM14 3v2h3.59l-9.83 9.83 1.41 1.41L19 6.41V10h2V3h-7z"/>
+          </svg>
+          WSDL Contract
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Real-Time Metrics Row -->
+  <div class="metrics-container">
+    <div class="metric-card m-blue">
+      <div class="metric-title">Seismic Events Analyzed</div>
+      <div class="metric-value" id="metric-event-count">0</div>
+      <div class="metric-sub">Real-time USGS Feed Query</div>
+    </div>
+    <div class="metric-card m-red">
+      <div class="metric-title">Max Observed Magnitude</div>
+      <div class="metric-value" id="metric-max-mag">0.0</div>
+      <div class="metric-sub">Within Selected Recency Window</div>
+    </div>
+    <div class="metric-card m-amber">
+      <div class="metric-title">Emergency Dispatches</div>
+      <div class="metric-value" id="metric-dispatch-count">0</div>
+      <div class="metric-sub">Disaster Relief Allocations</div>
+    </div>
+    <div class="metric-card m-green">
+      <div class="metric-title">Active Subscriptions</div>
+      <div class="metric-value" id="metric-sub-count">0</div>
+      <div class="metric-sub">Regional Seismic Observers</div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- Section 1: Live Earthquake Surveillance -->
+    <section class="command-panel" id="section-feed">
+      <div class="panel-header">
+        <div class="panel-title">
+          <svg viewBox="0 0 24 24" fill="var(--accent-blue)">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9v-2h2v2zm0-4H9V7h2v5z"/>
+          </svg>
+          Live Seismic Feed & Telemetry Query
+        </div>
+        <span class="badge-op">SOAP: getRecentEarthquakes</span>
+      </div>
+
+      <div class="panel-body">
+        <div id="feed-alert" class="alert-banner"></div>
+
+        <form id="form-earthquakes" class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="min-mag">Minimum Richter Magnitude</label>
+            <input type="number" id="min-mag" class="form-control" min="0" max="10" step="0.1" value="2.0" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="time-range">Recency Window (Hours)</label>
+            <select id="time-range" class="form-control" required>
+              <option value="1">Last 1 Hour (Hourly Feed)</option>
+              <option value="6">Last 6 Hours</option>
+              <option value="12">Last 12 Hours</option>
+              <option value="24" selected>Last 24 Hours (Daily Feed)</option>
+              <option value="48">Last 48 Hours</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <button type="submit" id="btn-fetch-quakes" class="btn-submit">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+              </svg>
+              Fetch Live Seismic Telemetry
+            </button>
+          </div>
+        </form>
+
+        <div class="table-responsive">
+          <table class="seismic-table" id="table-earthquakes">
+            <thead>
+              <tr>
+                <th style="width: 80px;">Magnitude</th>
+                <th>Epicenter Location</th>
+                <th>UTC Timestamp</th>
+                <th>Coordinates (Lat, Lon)</th>
+                <th>Focal Depth</th>
+                <th>Event ID</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="quake-table-body">
+              <tr>
+                <td colspan="7">
+                  <div class="empty-state">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                    </svg>
+                    <p>Click "Fetch Live Seismic Telemetry" to pull real-time earthquake feeds from USGS via SOAP.</p>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Wire Traffic Inspection Drawer -->
+        <div class="inspector-card">
+          <div class="inspector-header" onclick="toggleInspector('inspect-feed')">
+            <h4>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+              </svg>
+              Inspect SOAP XML Wire Traffic (getRecentEarthquakes)
+            </h4>
+            <span style="font-size: 0.75rem; color: var(--accent-blue);" id="toggle-inspect-feed-label">[Expand]</span>
+          </div>
+          <div class="inspector-body" id="inspect-feed" style="display: none;">
+            <div>
+              <div class="xml-label">SOAP Request Envelope</div>
+              <pre class="xml-box" id="xml-req-feed">// Waiting for invocation...</pre>
+            </div>
+            <div>
+              <div class="xml-label">SOAP Response Envelope (Raw XML from /ws)</div>
+              <pre class="xml-box" id="xml-res-feed">// Waiting for invocation...</pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Split Grid for Operation 2 and Operation 3 -->
+    <div class="split-grid">
+
+      <!-- Section 2: Alert Subscription -->
+      <section class="command-panel" id="section-subscribe">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" fill="var(--accent-green)">
+              <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+            </svg>
+            Alert Subscription Hub
+          </div>
+          <span class="badge-op">SOAP: subscribeToAlert</span>
+        </div>
+
+        <div class="panel-body">
+          <div id="sub-alert" class="alert-banner"></div>
+
+          <form id="form-subscribe" class="form-group" style="gap: 0.85rem;">
+            <div class="form-group">
+              <label class="form-label" for="sub-name">Subscriber / Agency Name</label>
+              <input type="text" id="sub-name" class="form-control" placeholder="e.g. Director Sarah Jenkins" required />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="sub-contact">Contact (Email or Secure Phone)</label>
+              <input type="text" id="sub-contact" class="form-control" placeholder="e.g. s.jenkins@fema.gov" required />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="sub-mag">Min Magnitude</label>
+                <input type="number" id="sub-mag" class="form-control" min="1" max="10" step="0.1" value="4.0" required />
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="sub-region">Monitoring Region</label>
+                <input type="text" id="sub-region" class="form-control" placeholder="e.g. Pacific Coast" value="Pacific Coast" required />
+              </div>
+            </div>
+
+            <button type="submit" id="btn-submit-sub" class="btn-submit btn-green" style="margin-top: 0.5rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+              </svg>
+              Register Alert Subscription
+            </button>
+          </form>
+
+          <div id="sub-result" style="display: none;" class="result-box">
+            <div class="result-row">
+              <div class="result-item">
+                <span class="result-key">Subscription ID</span>
+                <span class="result-val" id="res-sub-id" style="color: var(--accent-green);">--</span>
+              </div>
+              <div class="result-item">
+                <span class="result-key">Status</span>
+                <span class="result-val" id="res-sub-status">ACTIVE</span>
+              </div>
+            </div>
+            <div class="result-msg" id="res-sub-msg"></div>
+          </div>
+
+          <!-- Wire Inspection Drawer -->
+          <div class="inspector-card">
+            <div class="inspector-header" onclick="toggleInspector('inspect-sub')">
+              <h4>Inspect SOAP XML (subscribeToAlert)</h4>
+              <span style="font-size: 0.75rem; color: var(--accent-blue);" id="toggle-inspect-sub-label">[Expand]</span>
+            </div>
+            <div class="inspector-body" id="inspect-sub" style="display: none;">
+              <div>
+                <div class="xml-label">Request XML</div>
+                <pre class="xml-box" id="xml-req-sub">// Awaiting submission...</pre>
+              </div>
+              <div>
+                <div class="xml-label">Response XML</div>
+                <pre class="xml-box" id="xml-res-sub">// Awaiting submission...</pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Section 3: Emergency Resource Dispatch -->
+      <section class="command-panel" id="section-dispatch">
+        <div class="panel-header">
+          <div class="panel-title">
+            <svg viewBox="0 0 24 24" fill="var(--accent-amber)">
+              <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+            </svg>
+            Resource Dispatch Command
+          </div>
+          <span class="badge-op">SOAP: dispatchResource</span>
+        </div>
+
+        <div class="panel-body">
+          <div id="disp-alert" class="alert-banner"></div>
+
+          <form id="form-dispatch" class="form-group" style="gap: 0.85rem;">
+            <div class="form-group">
+              <label class="form-label" for="disp-eq-id">Target Earthquake ID</label>
+              <input type="text" id="disp-eq-id" class="form-control" placeholder="Select from table or type (e.g. us7000tgf2)" required />
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem;">
+              <div class="form-group">
+                <label class="form-label" for="disp-res-type">Resource Type</label>
+                <select id="disp-res-type" class="form-control" required>
+                  <option value="MEDICAL">MEDICAL (Triage & Surgical Units)</option>
+                  <option value="RESCUE" selected>RESCUE (Urban Search & Extraction)</option>
+                  <option value="SHELTER">SHELTER (Emergency Habitation & Tents)</option>
+                  <option value="SUPPLIES">SUPPLIES (Potable Water & Rations)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="disp-qty">Unit Quantity</label>
+                <input type="number" id="disp-qty" class="form-control" min="1" max="1000" value="15" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="disp-region">Destination Sector / Region</label>
+              <input type="text" id="disp-region" class="form-control" placeholder="e.g. Sector 4 Relief Camp" value="Sector 4 Relief Camp" required />
+            </div>
+
+            <button type="submit" id="btn-submit-disp" class="btn-submit btn-amber" style="margin-top: 0.5rem;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+              </svg>
+              Deploy Emergency Units
+            </button>
+          </form>
+
+          <div id="disp-result" style="display: none;" class="result-box">
+            <div class="result-row">
+              <div class="result-item">
+                <span class="result-key">Dispatch ID</span>
+                <span class="result-val" id="res-disp-id" style="color: var(--accent-amber);">--</span>
+              </div>
+              <div class="result-item">
+                <span class="result-key">Status</span>
+                <span class="result-val" id="res-disp-status" style="color: #6ee7b7;">DISPATCHED</span>
+              </div>
+              <div class="result-item">
+                <span class="result-key">Estimated Arrival (ETA)</span>
+                <span class="result-val" id="res-disp-eta">-- hours</span>
+              </div>
+            </div>
+            <div class="result-msg" id="res-disp-msg"></div>
+          </div>
+
+          <!-- Wire Inspection Drawer -->
+          <div class="inspector-card">
+            <div class="inspector-header" onclick="toggleInspector('inspect-disp')">
+              <h4>Inspect SOAP XML (dispatchResource)</h4>
+              <span style="font-size: 0.75rem; color: var(--accent-blue);" id="toggle-inspect-disp-label">[Expand]</span>
+            </div>
+            <div class="inspector-body" id="inspect-disp" style="display: none;">
+              <div>
+                <div class="xml-label">Request XML</div>
+                <pre class="xml-box" id="xml-req-disp">// Awaiting submission...</pre>
+              </div>
+              <div>
+                <div class="xml-label">Response XML</div>
+                <pre class="xml-box" id="xml-res-disp">// Awaiting submission...</pre>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div>
+      Real-Time Earthquake Alert & Emergency Resource Dispatch System &bull; Cloud Computing Assignment &bull; Spring Boot 3.4.3 & Spring-WS (Contract-First SOAP)
+    </div>
+    <div style="margin-top: 0.4rem;">
+      SOAP Endpoint: <code>/ws</code> &bull; WSDL: <a href="/ws/earthquake.wsdl" target="_blank">/ws/earthquake.wsdl</a> &bull; Seismic Feeds by <a href="https://earthquake.usgs.gov/" target="_blank" rel="noopener">USGS Earthquake Hazards Program</a>
+    </div>
+  </footer>
+
+  <!-- Core JavaScript for SOAP Envelope Construction & Parsing -->
+  <script>
+    const SOAP_ENDPOINT = '/ws';
+    const SOAP_NS = 'http://com.alok/earthquake_soap_service';
+
+    let totalDispatches = 0;
+    let totalSubscriptions = 0;
+
+    // Helper: Execute SOAP HTTP Request
+    async function invokeSoap(soapBodyXml) {
+      const envelope = `<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="${SOAP_NS}">
+  <soapenv:Header/>
+  <soapenv:Body>
+    ${soapBodyXml}
+  </soapenv:Body>
+</soapenv:Envelope>`;
+
+      const response = await fetch(SOAP_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/xml; charset=utf-8'
+        },
+        body: envelope
+      });
+
+      const responseText = await response.text();
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP ${response.status} ${response.statusText}: ${responseText.substring(0, 200)}`);
+      }
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(responseText, 'text/xml');
+      const parseError = xmlDoc.querySelector('parsererror');
+      if (parseError) {
+        throw new Error('Malformed XML response from SOAP service: ' + parseError.textContent);
+      }
+
+      // Check for SOAP Fault
+      const faultString = getElementText(xmlDoc, 'faultstring');
+      if (faultString) {
+        throw new Error('SOAP Fault: ' + faultString);
+      }
+
+      return { xmlDoc, requestText: envelope, responseText };
+    }
+
+    // Helper: Robust Namespace-Aware Tag Retrieval
+    function getElements(parent, tagName) {
+      if (!parent) return [];
+      let list = parent.getElementsByTagNameNS(SOAP_NS, tagName);
+      if (!list || list.length === 0) {
+        list = parent.getElementsByTagName(tagName);
+      }
+      if (!list || list.length === 0) {
+        list = parent.getElementsByTagName('ns2:' + tagName);
+      }
+      return Array.from(list);
+    }
+
+    function getElementText(parent, tagName, defaultValue = '') {
+      const list = getElements(parent, tagName);
+      return (list.length > 0 && list[0].textContent) ? list[0].textContent.trim() : defaultValue;
+    }
+
+    function showAlert(elementId, message, isError = true) {
+      const alertEl = document.getElementById(elementId);
+      alertEl.className = 'alert-banner ' + (isError ? 'error' : 'success');
+      alertEl.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink:0;">
+          ${isError 
+            ? '<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>'
+            : '<path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>'}
+        </svg>
+        <div>${escapeHtml(message)}</div>
+      `;
+      alertEl.style.display = 'flex';
+    }
+
+    function clearAlert(elementId) {
+      const alertEl = document.getElementById(elementId);
+      alertEl.style.display = 'none';
+      alertEl.innerHTML = '';
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function toggleInspector(id) {
+      const el = document.getElementById(id);
+      const label = document.getElementById('toggle-' + id + '-label');
+      if (el.style.display === 'none') {
+        el.style.display = 'grid';
+        if (label) label.textContent = '[Collapse]';
+      } else {
+        el.style.display = 'none';
+        if (label) label.textContent = '[Expand]';
+      }
+    }
+
+    function formatMagnitudeClass(mag) {
+      if (mag < 2.5) return 'mag-minor';
+      if (mag < 4.0) return 'mag-light';
+      if (mag < 5.0) return 'mag-moderate';
+      if (mag < 6.5) return 'mag-strong';
+      return 'mag-major';
+    }
+
+    // Quick-Fill Helper for Dispatching
+    function selectForDispatch(eqId, place) {
+      document.getElementById('disp-eq-id').value = eqId;
+      document.getElementById('disp-region').value = place;
+      document.getElementById('section-dispatch').scrollIntoView({ behavior: 'smooth' });
+      const dispInput = document.getElementById('disp-qty');
+      dispInput.focus();
+    }
+
+    // -------------------------------------------------------------
+    // Operation 1: getRecentEarthquakes
+    // -------------------------------------------------------------
+    document.getElementById('form-earthquakes').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert('feed-alert');
+
+      const minMag = parseFloat(document.getElementById('min-mag').value) || 0.0;
+      const hours = parseInt(document.getElementById('time-range').value, 10) || 24;
+      const btn = document.getElementById('btn-fetch-quakes');
+
+      const tbody = document.getElementById('quake-table-body');
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align:center; padding: 2.5rem;">
+            <div style="font-family: var(--font-mono); color: var(--accent-blue);">
+              Querying live USGS GeoJSON feed via Spring-WS SOAP endpoint...
+            </div>
+          </td>
+        </tr>
+      `;
+
+      btn.disabled = true;
+      btn.textContent = 'Contacting USGS...';
+
+      const soapReq = `<sch:getRecentEarthquakesRequest>
+    <sch:minMagnitude>${minMag}</sch:minMagnitude>
+    <sch:timeRangeHours>${hours}</sch:timeRangeHours>
+  </sch:getRecentEarthquakesRequest>`;
+
+      try {
+        const { xmlDoc, requestText, responseText } = await invokeSoap(soapReq);
+
+        document.getElementById('xml-req-feed').textContent = requestText;
+        document.getElementById('xml-res-feed').textContent = responseText;
+
+        const quakeNodes = getElements(xmlDoc, 'earthquakes');
+        const quakes = [];
+        let peakMag = 0.0;
+
+        quakeNodes.forEach(node => {
+          const mag = parseFloat(getElementText(node, 'magnitude', '0.0'));
+          if (mag > peakMag) peakMag = mag;
+
+          quakes.push({
+            id: getElementText(node, 'id', 'unknown'),
+            magnitude: mag,
+            place: getElementText(node, 'place', 'Unknown Location'),
+            timeUTC: getElementText(node, 'timeUTC', ''),
+            latitude: parseFloat(getElementText(node, 'latitude', '0.0')),
+            longitude: parseFloat(getElementText(node, 'longitude', '0.0')),
+            depthKm: parseFloat(getElementText(node, 'depthKm', '0.0'))
+          });
+        });
+
+        // Sort descending by magnitude
+        quakes.sort((a, b) => b.magnitude - a.magnitude);
+
+        // Update top metrics
+        document.getElementById('metric-event-count').textContent = quakes.length;
+        document.getElementById('metric-max-mag').textContent = quakes.length > 0 ? peakMag.toFixed(1) : '0.0';
+
+        if (quakes.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7">
+                <div class="empty-state">
+                  <p>No seismic events detected matching criteria (magnitude &ge; ${minMag} within last ${hours} hours).</p>
+                </div>
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        // Render earthquake rows
+        tbody.innerHTML = quakes.map(q => {
+          const magClass = formatMagnitudeClass(q.magnitude);
+          const timeDisplay = q.timeUTC ? q.timeUTC.replace('T', ' ').replace('Z', ' UTC') : 'N/A';
+          return `
+            <tr>
+              <td>
+                <span class="badge-mag ${magClass}">${q.magnitude.toFixed(1)}</span>
+              </td>
+              <td style="font-weight: 500; color: #fff;">${escapeHtml(q.place)}</td>
+              <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-muted);">${timeDisplay}</td>
+              <td style="font-family: var(--font-mono); font-size: 0.78rem;">
+                ${q.latitude.toFixed(3)}&deg;, ${q.longitude.toFixed(3)}&deg;
+              </td>
+              <td style="font-family: var(--font-mono); font-size: 0.78rem;">${q.depthKm.toFixed(1)} km</td>
+              <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim);">${escapeHtml(q.id)}</td>
+              <td style="text-align: right;">
+                <button type="button" class="btn-quick-dispatch" onclick="selectForDispatch('${escapeHtml(q.id)}', '${escapeHtml(q.place.replace(/'/g, "\\'"))}')">
+                  Dispatch Relief
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+      } catch (err) {
+        console.error('getRecentEarthquakes error:', err);
+        showAlert('feed-alert', err.message);
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" style="color: var(--accent-red); padding: 1.5rem; text-align: center; font-family: var(--font-mono);">
+              Failed to query earthquake service: ${escapeHtml(err.message)}
+            </td>
+          </tr>
+        `;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/>
+          </svg>
+          Fetch Live Seismic Telemetry
+        `;
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Operation 2: subscribeToAlert
+    // -------------------------------------------------------------
+    document.getElementById('form-subscribe').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert('sub-alert');
+
+      const name = document.getElementById('sub-name').value.trim();
+      const contact = document.getElementById('sub-contact').value.trim();
+      const mag = parseFloat(document.getElementById('sub-mag').value) || 4.0;
+      const region = document.getElementById('sub-region').value.trim();
+      const btn = document.getElementById('btn-submit-sub');
+
+      btn.disabled = true;
+      btn.textContent = 'Registering with Service...';
+
+      const soapReq = `<sch:subscribeToAlertRequest>
+    <sch:subscriberName>${escapeHtml(name)}</sch:subscriberName>
+    <sch:subscriberContact>${escapeHtml(contact)}</sch:subscriberContact>
+    <sch:minMagnitudeThreshold>${mag}</sch:minMagnitudeThreshold>
+    <sch:region>${escapeHtml(region)}</sch:region>
+  </sch:subscribeToAlertRequest>`;
+
+      try {
+        const { xmlDoc, requestText, responseText } = await invokeSoap(soapReq);
+
+        document.getElementById('xml-req-sub').textContent = requestText;
+        document.getElementById('xml-res-sub').textContent = responseText;
+
+        const subId = getElementText(xmlDoc, 'subscriptionId', 'SUB-UNKNOWN');
+        const status = getElementText(xmlDoc, 'status', 'ACTIVE');
+        const message = getElementText(xmlDoc, 'message', 'Subscription registered.');
+
+        document.getElementById('res-sub-id').textContent = subId;
+        document.getElementById('res-sub-status').textContent = status;
+        document.getElementById('res-sub-msg').textContent = message;
+        document.getElementById('sub-result').style.display = 'block';
+
+        totalSubscriptions++;
+        document.getElementById('metric-sub-count').textContent = totalSubscriptions;
+
+        showAlert('sub-alert', `Alert Subscription ${subId} successfully registered for ${name}!`, false);
+      } catch (err) {
+        console.error('subscribeToAlert error:', err);
+        showAlert('sub-alert', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+          Register Alert Subscription
+        `;
+      }
+    });
+
+    // -------------------------------------------------------------
+    // Operation 3: dispatchResource
+    // -------------------------------------------------------------
+    document.getElementById('form-dispatch').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearAlert('disp-alert');
+
+      const eqId = document.getElementById('disp-eq-id').value.trim();
+      const resType = document.getElementById('disp-res-type').value;
+      const qty = parseInt(document.getElementById('disp-qty').value, 10) || 1;
+      const dest = document.getElementById('disp-region').value.trim();
+      const btn = document.getElementById('btn-submit-disp');
+
+      btn.disabled = true;
+      btn.textContent = 'Deploying Units...';
+
+      const soapReq = `<sch:dispatchResourceRequest>
+    <sch:earthquakeId>${escapeHtml(eqId)}</sch:earthquakeId>
+    <sch:resourceType>${resType}</sch:resourceType>
+    <sch:quantity>${qty}</sch:quantity>
+    <sch:destinationRegion>${escapeHtml(dest)}</sch:destinationRegion>
+  </sch:dispatchResourceRequest>`;
+
+      try {
+        const { xmlDoc, requestText, responseText } = await invokeSoap(soapReq);
+
+        document.getElementById('xml-req-disp').textContent = requestText;
+        document.getElementById('xml-res-disp').textContent = responseText;
+
+        const dispId = getElementText(xmlDoc, 'dispatchId', 'DISP-UNKNOWN');
+        const status = getElementText(xmlDoc, 'status', 'DISPATCHED');
+        const eta = parseFloat(getElementText(xmlDoc, 'estimatedArrivalHours', '0.0'));
+        const message = getElementText(xmlDoc, 'message', 'Units dispatched.');
+
+        document.getElementById('res-disp-id').textContent = dispId;
+        document.getElementById('res-disp-status').textContent = status;
+        document.getElementById('res-disp-eta').textContent = `${eta.toFixed(1)} Hours`;
+        document.getElementById('res-disp-msg').textContent = message;
+        document.getElementById('disp-result').style.display = 'block';
+
+        totalDispatches++;
+        document.getElementById('metric-dispatch-count').textContent = totalDispatches;
+
+        showAlert('disp-alert', `Emergency Dispatch ${dispId} initiated: ${qty} units of ${resType} en route to '${dest}'!`, false);
+      } catch (err) {
+        console.error('dispatchResource error:', err);
+        showAlert('disp-alert', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+          </svg>
+          Deploy Emergency Units
+        `;
+      }
+    });
+
+    // Auto-fetch on initial page load for live demo
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('btn-fetch-quakes').click();
+    });
+  </script>
+</body>
+</html>
