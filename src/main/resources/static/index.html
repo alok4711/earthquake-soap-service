@@ -8,6 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  
+  <!-- globe.gl 3D Earth Visualization Library -->
+  <script src="https://unpkg.com/globe.gl"></script>
+
   <style>
     :root {
       --bg-page: #f8fafc;
@@ -166,16 +170,88 @@
       margin-top: 0.15rem;
     }
 
+    /* Clean Navigation Tabs */
+    .nav-tabs-wrapper {
+      max-width: 1200px;
+      margin: 1.5rem auto 0;
+      padding: 0 2rem;
+      width: 100%;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 0;
+      overflow-x: auto;
+    }
+
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.25rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      font-family: var(--font-main);
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--text-light);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+      border-radius: 6px 6px 0 0;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+      background: rgba(37, 99, 235, 0.04);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      font-weight: 600;
+      border-bottom-color: var(--primary);
+      background: rgba(37, 99, 235, 0.06);
+    }
+
+    .tab-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .tab-badge {
+      font-size: 0.72rem;
+      padding: 0.1rem 0.45rem;
+      border-radius: 10px;
+      background: var(--border);
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .tab-btn.active .tab-badge {
+      background: var(--primary);
+      color: #ffffff;
+    }
+
     /* Main Container */
     main.container {
       max-width: 1200px;
       margin: 1.5rem auto;
       padding: 0 2rem;
       width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 1.75rem;
       flex: 1;
+    }
+
+    /* Tab Content visibility */
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
     }
 
     /* Clean Card / Section */
@@ -248,28 +324,34 @@
       font-size: 0.9rem;
       font-family: inherit;
       color: var(--text-main);
-      background: #ffffff;
-      outline: none;
+      background: var(--bg-surface);
       transition: border-color 0.15s;
     }
 
     .form-input:focus {
+      outline: none;
       border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
-    .btn {
-      padding: 0.65rem 1.25rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 600;
+    select.form-input {
       cursor: pointer;
-      border: none;
-      transition: background 0.15s;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.88rem;
+      font-weight: 600;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 0.4rem;
+      gap: 0.5rem;
+      font-family: inherit;
     }
 
     .btn-primary {
@@ -281,72 +363,73 @@
       background: var(--primary-hover);
     }
 
-    .btn:disabled {
+    .btn-primary:disabled {
       opacity: 0.6;
       cursor: not-allowed;
     }
 
-    /* Two column grid */
-    .two-col-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
+    .btn-sm {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 0.35rem 0.75rem;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
     }
 
-    @media (max-width: 850px) {
-      .two-col-grid {
-        grid-template-columns: 1fr;
-      }
+    .btn-sm:hover {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
     }
 
-    /* Status and Alert Messages */
+    /* Banners */
     .banner {
-      display: none;
-      padding: 0.85rem 1rem;
+      padding: 0.75rem 1rem;
       border-radius: 6px;
-      font-size: 0.88rem;
-      margin-bottom: 1rem;
-      line-height: 1.4;
+      font-size: 0.85rem;
+      margin-bottom: 1.25rem;
+      display: none;
     }
 
     .banner.error {
-      display: block;
       background: var(--error-bg);
       color: var(--error-text);
       border: 1px solid var(--error-border);
     }
 
     .banner.success {
-      display: block;
       background: var(--success-bg);
       color: var(--success-text);
       border: 1px solid var(--success-border);
     }
 
-    /* Clean Results Table */
+    /* Clean Data Table */
     .table-wrapper {
-      overflow-x: auto;
-      margin-top: 1.25rem;
+      margin-top: 1.5rem;
       border: 1px solid var(--border);
       border-radius: 6px;
+      overflow-x: auto;
+      background: var(--bg-surface);
     }
 
     table.data-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.88rem;
       text-align: left;
+      font-size: 0.88rem;
     }
 
     table.data-table th {
       background: #f8fafc;
-      color: var(--text-light);
-      font-weight: 600;
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
       padding: 0.75rem 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 0.8rem;
       border-bottom: 1px solid var(--border);
+      white-space: nowrap;
     }
 
     table.data-table td {
@@ -453,10 +536,11 @@
 
     .soap-inspector-btn {
       width: 100%;
+      padding: 0.6rem 1rem;
       background: #f8fafc;
       border: none;
-      padding: 0.65rem 1rem;
       text-align: left;
+      font-family: inherit;
       font-size: 0.8rem;
       font-weight: 600;
       color: var(--text-muted);
@@ -473,25 +557,26 @@
     .soap-inspector-content {
       display: none;
       padding: 1rem;
-      background: #ffffff;
+      background: var(--bg-surface);
       border-top: 1px solid var(--border);
-      gap: 1rem;
       grid-template-columns: 1fr 1fr;
+      gap: 1rem;
     }
 
-    @media (max-width: 750px) {
+    @media (max-width: 800px) {
       .soap-inspector-content {
         grid-template-columns: 1fr;
       }
     }
 
     .xml-box {
-      background: #0f172a;
-      color: #e2e8f0;
-      padding: 0.75rem;
+      background: #f8fafc;
+      border: 1px solid var(--border);
       border-radius: 4px;
+      padding: 0.75rem;
       font-family: var(--font-mono);
       font-size: 0.75rem;
+      color: var(--text-main);
       max-height: 220px;
       overflow-y: auto;
       white-space: pre-wrap;
@@ -512,6 +597,91 @@
       text-align: center;
       color: var(--text-light);
       font-size: 0.9rem;
+    }
+
+    /* 3D Globe Specific Styles */
+    .globe-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .globe-legend {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-weight: 500;
+    }
+
+    .legend-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .globe-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .globe-badge {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-light);
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      border: 1px solid #bfdbfe;
+    }
+
+    .globe-container-wrapper {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #020617;
+      min-height: 580px;
+      width: 100%;
+    }
+
+    #globe-viz {
+      width: 100%;
+      height: 580px;
+    }
+
+    .globe-hint {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.8);
+      color: #e2e8f0;
+      font-size: 0.75rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+      white-space: nowrap;
+      border: 1px solid rgba(255, 255, 255, 0.12);
     }
 
     /* Footer */
@@ -567,7 +737,7 @@
     </div>
   </header>
 
-  <!-- Metrics Summary -->
+  <!-- Metrics Summary Bar -->
   <div class="metrics-bar">
     <div class="metric-box">
       <div class="metric-label">Earthquakes Found</div>
@@ -587,11 +757,48 @@
     </div>
   </div>
 
-  <!-- Main Dashboard Sections -->
+  <!-- Navigation Tabs Bar -->
+  <div class="nav-tabs-wrapper">
+    <nav class="nav-tabs" aria-label="Dashboard Sections">
+      <button type="button" class="tab-btn active" data-tab="feed" onclick="switchTab('feed')" id="tab-btn-feed">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+        </svg>
+        Recent Earthquakes
+        <span class="tab-badge" id="tab-badge-feed">0</span>
+      </button>
+
+      <button type="button" class="tab-btn" data-tab="globe" onclick="switchTab('globe')" id="tab-btn-globe">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+        Global View (3D Map)
+        <span class="tab-badge" id="tab-badge-globe">0</span>
+      </button>
+
+      <button type="button" class="tab-btn" data-tab="subscribe" onclick="switchTab('subscribe')" id="tab-btn-subscribe">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z"/>
+        </svg>
+        Subscribe to Alerts
+        <span class="tab-badge" id="tab-badge-sub">0</span>
+      </button>
+
+      <button type="button" class="tab-btn" data-tab="dispatch" onclick="switchTab('dispatch')" id="tab-btn-dispatch">
+        <svg viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>
+        </svg>
+        Dispatch Resources
+        <span class="tab-badge" id="tab-badge-disp">0</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Main Dashboard Content -->
   <main class="container">
 
-    <!-- Section 1: Recent Earthquakes -->
-    <section class="card" id="section-feed">
+    <!-- Section 1: Recent Earthquakes (Feed) -->
+    <section class="card tab-content active" id="section-feed" data-tab="feed">
       <div class="card-title-row">
         <div>
           <h2 class="card-title">Recent Earthquakes</h2>
@@ -667,165 +874,202 @@
       </div>
     </section>
 
-    <!-- Split Grid for Operation 2 and 3 -->
-    <div class="two-col-grid">
+    <!-- Section 2: Global View (3D Earth Globe Visualization) -->
+    <section class="card tab-content" id="section-globe" data-tab="globe">
+      <div class="card-title-row">
+        <div>
+          <h2 class="card-title">Global View (3D Seismic Map)</h2>
+          <p class="card-subtitle">Interactive 3D Earth visualization showing live earthquake epicenters with pulsing wave propagation ripples</p>
+        </div>
+        <span class="badge-soap">SOAP: getRecentEarthquakes</span>
+      </div>
 
-      <!-- Section 2: Alert Subscriptions -->
-      <section class="card" id="section-subscribe">
-        <div class="card-title-row">
+      <!-- Globe Toolbar & Controls -->
+      <div class="globe-toolbar">
+        <div class="globe-legend">
+          <span class="legend-item"><span class="legend-dot" style="background: #22c55e;"></span> &lt; 3.0 Low</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #eab308;"></span> 3.0 – 4.5 Moderate</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #f97316;"></span> 4.5 – 6.0 Strong</span>
+          <span class="legend-item"><span class="legend-dot" style="background: #ef4444;"></span> &ge; 6.0 Severe</span>
+        </div>
+
+        <div class="globe-actions">
+          <span class="globe-badge" id="globe-status-count">0 Events Plotted</span>
+          <button type="button" class="btn-sm" id="btn-toggle-rotate" onclick="toggleAutoRotate()">
+            Pause Rotation
+          </button>
+          <button type="button" class="btn-sm" onclick="resetGlobeCamera()">
+            Reset View
+          </button>
+          <button type="button" class="btn-sm" onclick="refreshGlobeFeed()">
+            Refresh Live Data
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D Globe WebGL Container -->
+      <div class="globe-container-wrapper">
+        <div id="globe-viz"></div>
+        <div class="globe-hint">
+          &bull; Click and drag to rotate &bull; Scroll to zoom &bull; Hover over epicenters for event telemetry &bull; Click point to dispatch resources
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Alert Subscriptions -->
+    <section class="card tab-content" id="section-subscribe" data-tab="subscribe">
+      <div class="card-title-row">
+        <div>
+          <h2 class="card-title">Alert Subscriptions</h2>
+          <p class="card-subtitle">Subscribe to automated notifications when an earthquake exceeds a threshold</p>
+        </div>
+        <span class="badge-soap">SOAP: subscribeToAlert</span>
+      </div>
+
+      <div id="sub-banner" class="banner"></div>
+
+      <form id="form-subscribe" style="display: flex; flex-direction: column; gap: 0.9rem; max-width: 650px;">
+        <div class="form-group">
+          <label for="sub-name">Subscriber Name</label>
+          <input type="text" id="sub-name" class="form-input" placeholder="e.g. Alok Kumar" required />
+        </div>
+
+        <div class="form-group">
+          <label for="sub-contact">Email or Phone Number</label>
+          <input type="text" id="sub-contact" class="form-input" placeholder="e.g. alok@example.com" required />
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="form-group">
+            <label for="sub-mag">Min Magnitude</label>
+            <input type="number" id="sub-mag" class="form-input" min="1" max="10" step="0.1" value="4.0" required />
+          </div>
+          <div class="form-group">
+            <label for="sub-region">Region</label>
+            <input type="text" id="sub-region" class="form-input" value="California Coast" required />
+          </div>
+        </div>
+
+        <button type="submit" id="btn-submit-sub" class="btn btn-primary" style="margin-top: 0.4rem; align-self: flex-start;">
+          Subscribe to Alerts
+        </button>
+      </form>
+
+      <!-- Subscription Result Panel -->
+      <div id="sub-result" class="result-panel" style="display: none; max-width: 650px;">
+        <div class="result-row">
+          <div class="result-item">
+            <span class="result-label">Subscription ID</span>
+            <span class="result-value" id="res-sub-id" style="color: var(--primary);">--</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Status</span>
+            <span class="result-value" id="res-sub-status" style="color: #166534;">ACTIVE</span>
+          </div>
+        </div>
+        <div class="result-text" id="res-sub-msg"></div>
+      </div>
+
+      <!-- Raw SOAP Request/Response Accordion -->
+      <div class="soap-inspector">
+        <button type="button" class="soap-inspector-btn" onclick="toggleSoapViewer('sub-soap')">
+          <span>View Raw SOAP Request/Response (subscribeToAlert)</span>
+          <span id="sub-soap-toggle">[Show XML]</span>
+        </button>
+        <div class="soap-inspector-content" id="sub-soap">
           <div>
-            <h2 class="card-title">Alert Subscriptions</h2>
-            <p class="card-subtitle">Subscribe to automated notifications when an earthquake exceeds a threshold</p>
+            <div class="xml-header">SOAP Request Envelope</div>
+            <pre class="xml-box" id="xml-req-sub">// Awaiting submission...</pre>
           </div>
-          <span class="badge-soap">SOAP: subscribeToAlert</span>
-        </div>
-
-        <div id="sub-banner" class="banner"></div>
-
-        <form id="form-subscribe" style="display: flex; flex-direction: column; gap: 0.9rem;">
-          <div class="form-group">
-            <label for="sub-name">Subscriber Name</label>
-            <input type="text" id="sub-name" class="form-input" placeholder="e.g. Alok Kumar" required />
-          </div>
-
-          <div class="form-group">
-            <label for="sub-contact">Email or Phone Number</label>
-            <input type="text" id="sub-contact" class="form-input" placeholder="e.g. alok@example.com" required />
-          </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-            <div class="form-group">
-              <label for="sub-mag">Min Magnitude</label>
-              <input type="number" id="sub-mag" class="form-input" min="1" max="10" step="0.1" value="4.0" required />
-            </div>
-            <div class="form-group">
-              <label for="sub-region">Region</label>
-              <input type="text" id="sub-region" class="form-input" value="California Coast" required />
-            </div>
-          </div>
-
-          <button type="submit" id="btn-submit-sub" class="btn btn-primary" style="margin-top: 0.4rem;">
-            Subscribe to Alerts
-          </button>
-        </form>
-
-        <!-- Subscription Result Panel -->
-        <div id="sub-result" class="result-panel" style="display: none;">
-          <div class="result-row">
-            <div class="result-item">
-              <span class="result-label">Subscription ID</span>
-              <span class="result-value" id="res-sub-id" style="color: var(--primary);">--</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">Status</span>
-              <span class="result-value" id="res-sub-status" style="color: #166534;">ACTIVE</span>
-            </div>
-          </div>
-          <div class="result-text" id="res-sub-msg"></div>
-        </div>
-
-        <!-- Raw SOAP Request/Response Accordion -->
-        <div class="soap-inspector">
-          <button type="button" class="soap-inspector-btn" onclick="toggleSoapViewer('sub-soap')">
-            <span>View Raw SOAP Request/Response (subscribeToAlert)</span>
-            <span id="sub-soap-toggle">[Show XML]</span>
-          </button>
-          <div class="soap-inspector-content" id="sub-soap">
-            <div>
-              <div class="xml-header">SOAP Request Envelope</div>
-              <pre class="xml-box" id="xml-req-sub">// Awaiting submission...</pre>
-            </div>
-            <div>
-              <div class="xml-header">SOAP Response Envelope</div>
-              <pre class="xml-box" id="xml-res-sub">// Awaiting submission...</pre>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Section 3: Dispatch Resources -->
-      <section class="card" id="section-dispatch">
-        <div class="card-title-row">
           <div>
-            <h2 class="card-title">Dispatch Resources</h2>
-            <p class="card-subtitle">Dispatch emergency relief resources to an affected earthquake location</p>
+            <div class="xml-header">SOAP Response Envelope</div>
+            <pre class="xml-box" id="xml-res-sub">// Awaiting submission...</pre>
           </div>
-          <span class="badge-soap">SOAP: dispatchResource</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: Dispatch Resources -->
+    <section class="card tab-content" id="section-dispatch" data-tab="dispatch">
+      <div class="card-title-row">
+        <div>
+          <h2 class="card-title">Dispatch Resources</h2>
+          <p class="card-subtitle">Dispatch emergency relief resources to an affected earthquake location</p>
+        </div>
+        <span class="badge-soap">SOAP: dispatchResource</span>
+      </div>
+
+      <div id="disp-banner" class="banner"></div>
+
+      <form id="form-dispatch" style="display: flex; flex-direction: column; gap: 0.9rem; max-width: 650px;">
+        <div class="form-group">
+          <label for="disp-eq-id">Earthquake ID</label>
+          <input type="text" id="disp-eq-id" class="form-input" placeholder="Click 'Dispatch' on an earthquake row or globe event" required />
         </div>
 
-        <div id="disp-banner" class="banner"></div>
-
-        <form id="form-dispatch" style="display: flex; flex-direction: column; gap: 0.9rem;">
+        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem;">
           <div class="form-group">
-            <label for="disp-eq-id">Earthquake ID</label>
-            <input type="text" id="disp-eq-id" class="form-input" placeholder="Click 'Dispatch' on an earthquake above or enter ID" required />
+            <label for="disp-res-type">Resource Type</label>
+            <select id="disp-res-type" class="form-input" required>
+              <option value="MEDICAL">MEDICAL (Triage & Supplies)</option>
+              <option value="RESCUE" selected>RESCUE (Search Teams)</option>
+              <option value="SHELTER">SHELTER (Emergency Tents)</option>
+              <option value="SUPPLIES">SUPPLIES (Food & Water)</option>
+            </select>
           </div>
-
-          <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem;">
-            <div class="form-group">
-              <label for="disp-res-type">Resource Type</label>
-              <select id="disp-res-type" class="form-input" required>
-                <option value="MEDICAL">MEDICAL (Triage & Supplies)</option>
-                <option value="RESCUE" selected>RESCUE (Search Teams)</option>
-                <option value="SHELTER">SHELTER (Emergency Tents)</option>
-                <option value="SUPPLIES">SUPPLIES (Food & Water)</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="disp-qty">Quantity</label>
-              <input type="number" id="disp-qty" class="form-input" min="1" max="500" value="10" required />
-            </div>
-          </div>
-
           <div class="form-group">
-            <label for="disp-region">Destination Region</label>
-            <input type="text" id="disp-region" class="form-input" placeholder="e.g. Northern Sector Shelter" value="Northern Sector Shelter" required />
-          </div>
-
-          <button type="submit" id="btn-submit-disp" class="btn btn-primary" style="margin-top: 0.4rem;">
-            Dispatch Resources
-          </button>
-        </form>
-
-        <!-- Dispatch Result Panel -->
-        <div id="disp-result" class="result-panel" style="display: none;">
-          <div class="result-row">
-            <div class="result-item">
-              <span class="result-label">Dispatch ID</span>
-              <span class="result-value" id="res-disp-id" style="color: var(--primary);">--</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">Status</span>
-              <span class="result-value" id="res-disp-status" style="color: #166534;">DISPATCHED</span>
-            </div>
-            <div class="result-item">
-              <span class="result-label">Estimated Arrival</span>
-              <span class="result-value" id="res-disp-eta">--</span>
-            </div>
-          </div>
-          <div class="result-text" id="res-disp-msg"></div>
-        </div>
-
-        <!-- Raw SOAP Request/Response Accordion -->
-        <div class="soap-inspector">
-          <button type="button" class="soap-inspector-btn" onclick="toggleSoapViewer('disp-soap')">
-            <span>View Raw SOAP Request/Response (dispatchResource)</span>
-            <span id="disp-soap-toggle">[Show XML]</span>
-          </button>
-          <div class="soap-inspector-content" id="disp-soap">
-            <div>
-              <div class="xml-header">SOAP Request Envelope</div>
-              <pre class="xml-box" id="xml-req-disp">// Awaiting submission...</pre>
-            </div>
-            <div>
-              <div class="xml-header">SOAP Response Envelope</div>
-              <pre class="xml-box" id="xml-res-disp">// Awaiting submission...</pre>
-            </div>
+            <label for="disp-qty">Quantity</label>
+            <input type="number" id="disp-qty" class="form-input" min="1" max="500" value="10" required />
           </div>
         </div>
-      </section>
 
-    </div>
+        <div class="form-group">
+          <label for="disp-region">Destination Region</label>
+          <input type="text" id="disp-region" class="form-input" placeholder="e.g. Northern Sector Shelter" value="Northern Sector Shelter" required />
+        </div>
+
+        <button type="submit" id="btn-submit-disp" class="btn btn-primary" style="margin-top: 0.4rem; align-self: flex-start;">
+          Dispatch Resources
+        </button>
+      </form>
+
+      <!-- Dispatch Result Panel -->
+      <div id="disp-result" class="result-panel" style="display: none; max-width: 650px;">
+        <div class="result-row">
+          <div class="result-item">
+            <span class="result-label">Dispatch ID</span>
+            <span class="result-value" id="res-disp-id" style="color: var(--primary);">--</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Status</span>
+            <span class="result-value" id="res-disp-status" style="color: #166534;">DISPATCHED</span>
+          </div>
+          <div class="result-item">
+            <span class="result-label">Estimated Arrival</span>
+            <span class="result-value" id="res-disp-eta">--</span>
+          </div>
+        </div>
+        <div class="result-text" id="res-disp-msg"></div>
+      </div>
+
+      <!-- Raw SOAP Request/Response Accordion -->
+      <div class="soap-inspector">
+        <button type="button" class="soap-inspector-btn" onclick="toggleSoapViewer('disp-soap')">
+          <span>View Raw SOAP Request/Response (dispatchResource)</span>
+          <span id="disp-soap-toggle">[Show XML]</span>
+        </button>
+        <div class="soap-inspector-content" id="disp-soap">
+          <div>
+            <div class="xml-header">SOAP Request Envelope</div>
+            <pre class="xml-box" id="xml-req-disp">// Awaiting submission...</pre>
+          </div>
+          <div>
+            <div class="xml-header">SOAP Response Envelope</div>
+            <pre class="xml-box" id="xml-res-disp">// Awaiting submission...</pre>
+          </div>
+        </div>
+      </div>
+    </section>
 
   </main>
 
@@ -837,15 +1081,43 @@
     </p>
   </footer>
 
-  <!-- JavaScript: Handles SOAP XML Requests and Responses -->
+  <!-- JavaScript: Handles SOAP XML Requests, Tab Switching, and 3D Globe Visualization -->
   <script>
     const SOAP_ENDPOINT = '/ws';
     const SOAP_NS = 'http://com.alok/earthquake_soap_service';
 
     let totalSubCount = 0;
     let totalDispCount = 0;
+    let cachedQuakes = [];
+    let myGlobe = null;
+    let isAutoRotating = true;
 
+    // -------------------------------------------------------------
+    // Tab Switching Logic
+    // -------------------------------------------------------------
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-content').forEach(section => {
+        section.classList.toggle('active', section.dataset.tab === tabId);
+      });
+
+      if (tabId === 'globe') {
+        initGlobeIfNeeded();
+        setTimeout(() => {
+          resizeGlobe();
+        }, 60);
+
+        if (cachedQuakes.length === 0) {
+          document.getElementById('btn-fetch-quakes').click();
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
     // Execute SOAP POST call to /ws
+    // -------------------------------------------------------------
     async function invokeSoap(bodyXml) {
       const envelope = `<?xml version="1.0" encoding="UTF-8"?>
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:sch="${SOAP_NS}">
@@ -940,12 +1212,130 @@
       return 'mag-severe';
     }
 
-    // Pre-fill Dispatch Form when clicking "Dispatch" on an earthquake row
+    function getQuakeRingColor(mag, alpha) {
+      if (mag < 3.0) return `rgba(34, 197, 94, ${alpha})`;
+      if (mag < 4.5) return `rgba(234, 179, 8, ${alpha})`;
+      if (mag < 6.0) return `rgba(249, 115, 22, ${alpha})`;
+      return `rgba(239, 68, 68, ${alpha})`;
+    }
+
+    function getPointColor(mag) {
+      if (mag < 3.0) return '#22c55e';
+      if (mag < 4.5) return '#eab308';
+      if (mag < 6.0) return '#f97316';
+      return '#ef4444';
+    }
+
+    // Pre-fill Dispatch Form when clicking "Dispatch" on an earthquake row or globe event
     function prepareDispatch(eqId, place) {
       document.getElementById('disp-eq-id').value = eqId;
       document.getElementById('disp-region').value = place;
-      document.getElementById('section-dispatch').scrollIntoView({ behavior: 'smooth' });
+      switchTab('dispatch');
       document.getElementById('disp-qty').focus();
+    }
+
+    // -------------------------------------------------------------
+    // 3D Globe Visualization via globe.gl
+    // -------------------------------------------------------------
+    function initGlobeIfNeeded() {
+      if (myGlobe) return;
+      const container = document.getElementById('globe-viz');
+      if (!container || typeof Globe === 'undefined') return;
+
+      const width = container.clientWidth || 1000;
+      const height = 580;
+
+      myGlobe = Globe()(container)
+        .width(width)
+        .height(height)
+        .globeImageUrl('https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg')
+        .bumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png')
+        .backgroundImageUrl('https://unpkg.com/three-globe/example/img/night-sky.png')
+        .atmosphereColor('#38bdf8')
+        .atmosphereAltitude(0.18)
+        .ringLat(d => d.latitude)
+        .ringLng(d => d.longitude)
+        .ringAltitude(0.005)
+        .ringMaxRadius(d => Math.max(2.0, Math.min(12, d.magnitude * 1.6)))
+        .ringPropagationSpeed(d => Math.max(0.6, d.magnitude * 0.4))
+        .ringRepeatPeriod(d => Math.max(650, Math.floor(2200 - d.magnitude * 180)))
+        .ringColor(d => t => getQuakeRingColor(d.magnitude, Math.max(0, 1 - t)))
+        .pointLat(d => d.latitude)
+        .pointLng(d => d.longitude)
+        .pointAltitude(0.008)
+        .pointRadius(d => Math.max(0.28, d.magnitude * 0.08))
+        .pointColor(d => getPointColor(d.magnitude))
+        .pointLabel(d => `
+          <div style="background: rgba(15, 23, 42, 0.95); color: #ffffff; padding: 10px 14px; border-radius: 8px; font-family: Inter, sans-serif; font-size: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.15); pointer-events: none; line-height: 1.4; max-width: 280px;">
+            <div style="font-weight: 700; font-size: 13px; color: #60a5fa; margin-bottom: 3px;">
+              Magnitude ${d.magnitude.toFixed(1)} &bull; ${escapeHtml(d.place)}
+            </div>
+            <div style="color: #cbd5e1; font-size: 11px;">Time: ${d.timeClean || 'N/A'}</div>
+            <div style="color: #94a3b8; font-size: 11px;">Coords: ${d.latitude.toFixed(2)}&deg;, ${d.longitude.toFixed(2)}&deg; &bull; Depth: ${d.depthKm.toFixed(1)} km</div>
+            <div style="color: #38bdf8; font-size: 11px; margin-top: 5px; font-weight: 600;">Click point to dispatch resources &rarr;</div>
+          </div>
+        `)
+        .onPointClick(d => {
+          prepareDispatch(d.id, d.place);
+        });
+
+      const controls = myGlobe.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.6;
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.1;
+
+      if (cachedQuakes.length > 0) {
+        updateGlobeData(cachedQuakes);
+      }
+    }
+
+    function resizeGlobe() {
+      if (!myGlobe) return;
+      const container = document.getElementById('globe-viz');
+      if (container && container.clientWidth > 0) {
+        myGlobe.width(container.clientWidth);
+        myGlobe.height(580);
+      }
+    }
+
+    window.addEventListener('resize', resizeGlobe);
+
+    function updateGlobeData(quakes) {
+      const prepared = quakes.map(q => ({
+        ...q,
+        timeClean: q.timeUTC ? q.timeUTC.replace('T', ' ').replace('Z', ' UTC') : 'N/A'
+      }));
+
+      const globeStatus = document.getElementById('globe-status-count');
+      if (globeStatus) {
+        globeStatus.textContent = `${quakes.length} Events Plotted`;
+      }
+
+      if (myGlobe) {
+        myGlobe.ringsData(prepared);
+        myGlobe.pointsData(prepared);
+      }
+    }
+
+    function toggleAutoRotate() {
+      if (!myGlobe) return;
+      const controls = myGlobe.controls();
+      isAutoRotating = !isAutoRotating;
+      controls.autoRotate = isAutoRotating;
+      const btn = document.getElementById('btn-toggle-rotate');
+      if (btn) {
+        btn.textContent = isAutoRotating ? 'Pause Rotation' : 'Resume Rotation';
+      }
+    }
+
+    function resetGlobeCamera() {
+      if (!myGlobe) return;
+      myGlobe.pointOfView({ lat: 20, lng: 0, altitude: 2.2 }, 1000);
+    }
+
+    function refreshGlobeFeed() {
+      document.getElementById('btn-fetch-quakes').click();
     }
 
     // -------------------------------------------------------------
@@ -1004,9 +1394,15 @@
         // Sort descending by magnitude
         quakes.sort((a, b) => b.magnitude - a.magnitude);
 
-        // Update summary metrics
+        // Update cached data for globe
+        cachedQuakes = quakes;
+        updateGlobeData(cachedQuakes);
+
+        // Update summary metrics & badges
         document.getElementById('metric-count').textContent = quakes.length;
         document.getElementById('metric-max-mag').textContent = quakes.length > 0 ? maxMag.toFixed(1) : '0.0';
+        document.getElementById('tab-badge-feed').textContent = quakes.length;
+        document.getElementById('tab-badge-globe').textContent = quakes.length;
 
         if (quakes.length === 0) {
           tbody.innerHTML = `
@@ -1095,6 +1491,7 @@
 
         totalSubCount++;
         document.getElementById('metric-sub-count').textContent = totalSubCount;
+        document.getElementById('tab-badge-sub').textContent = totalSubCount;
 
         showBanner('sub-banner', `Subscription ${subId} successfully registered for ${name}!`, false);
       } catch (err) {
@@ -1148,6 +1545,7 @@
 
         totalDispCount++;
         document.getElementById('metric-disp-count').textContent = totalDispCount;
+        document.getElementById('tab-badge-disp').textContent = totalDispCount;
 
         showBanner('disp-banner', `Dispatch ${dispId} confirmed: ${qty} units of ${resType} sent to ${dest}.`, false);
       } catch (err) {
