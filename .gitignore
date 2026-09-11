@@ -35,3 +35,11 @@ build/
 ### Log files & crash dumps ###
 *.log
 
+### Environment Variables & Local Secrets ###
+.env
+.env.*
+!.env.example
+*.local.properties
+application-local.properties
+
+

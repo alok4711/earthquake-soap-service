@@ -137,16 +137,28 @@ export MAVEN_OPTS="-Xmx384m -XX:MaxMetaspaceSize=192m" && ./mvnw test
 ```
 
 ### Step 2: Run Against Local PostgreSQL
-Ensure PostgreSQL is running locally with database `earthquakedb`:
+Ensure PostgreSQL is running locally with database `earthquakedb`. You can configure your local environment using `.env.example` as a template:
+
 ```bash
 # On Windows PowerShell:
 $env:DB_HOST="localhost"; $env:DB_PORT="5432"; $env:DB_NAME="earthquakedb"; $env:DB_USER="postgres"; $env:DB_PASSWORD="yourpassword"
+
+# Optional: Enable live Azure Communication Services email alerts locally
+$env:ACS_CONNECTION_STRING="<YOUR_ACS_CONNECTION_STRING>"
+$env:ACS_SENDER_ADDRESS="DoNotReply@<YOUR_DOMAIN>.azurecomm.net"
+
 .\mvnw.cmd spring-boot:run
 
 # On Linux / macOS:
 export DB_HOST=localhost DB_PORT=5432 DB_NAME=earthquakedb DB_USER=postgres DB_PASSWORD=yourpassword
+# Optional ACS email variables:
+export ACS_CONNECTION_STRING="<YOUR_ACS_CONNECTION_STRING>"
+export ACS_SENDER_ADDRESS="DoNotReply@<YOUR_DOMAIN>.azurecomm.net"
+
 ./mvnw spring-boot:run
 ```
+
+> **Note**: A template file [`.env.example`](file:///.env.example) is provided in the root directory. Copy it to `.env` (which is excluded from source control by `.gitignore`) for local secrets. Never commit live connection strings or passwords to Git.
 
 Access the application in your browser:
 - **Operations Console UI**: `http://localhost:8080/`
@@ -273,7 +285,7 @@ az postgres flexible-server create \
   --name earthquake-psql-server \
   --location eastus \
   --admin-user psqladmin \
-  --admin-password 'YourStrongPassword123!' \
+  --admin-password '<YOUR_STRONG_PASSWORD>' \
   --sku-name Standard_B1ms \
   --tier Burstable \
   --version 16 \
@@ -349,14 +361,18 @@ az communication update \
   --linked-domains "${DOMAIN_ID}"
 
 # 8. Retrieve the primary ACS connection string
+# (Alternatively, copy directly from Azure Portal: Communication Services > Settings > Keys)
 ACS_CONNECTION_STRING=$(az communication list-key \
   --name earthquake-comm-service \
   --resource-group rg-earthquake-service \
   --query primaryConnectionString -o tsv)
 ```
 
+> [!IMPORTANT]
+> **Security Best Practice**: Never hardcode connection strings, access keys, or passwords in committed files or documentation. All sensitive credentials must be provided exclusively via environment variables (`ACS_CONNECTION_STRING`, `ACS_SENDER_ADDRESS`, `DB_PASSWORD`) and configured directly in the target environment (e.g. Azure App Service App Settings, or a local `.env` file that is excluded by `.gitignore`).
+
 ### Step 4: Configure App Service Settings
-Set the database and ACS environment variables on your Azure App Service:
+Set the database and ACS environment variables on your Azure App Service using placeholders or variables retrieved from the CLI:
 ```bash
 az webapp config appsettings set \
   --resource-group rg-earthquake-service \
@@ -366,11 +382,12 @@ az webapp config appsettings set \
     DB_PORT="5432" \
     DB_NAME="earthquakedb" \
     DB_USER="psqladmin" \
-    DB_PASSWORD="YourStrongPassword123!" \
+    DB_PASSWORD="<YOUR_DATABASE_PASSWORD>" \
     DB_SSL_MODE="require" \
-    ACS_CONNECTION_STRING="${ACS_CONNECTION_STRING}" \
-    ACS_SENDER_ADDRESS="${ACS_SENDER_ADDRESS}"
+    ACS_CONNECTION_STRING="<YOUR_ACS_CONNECTION_STRING>" \
+    ACS_SENDER_ADDRESS="<YOUR_ACS_SENDER_ADDRESS>"
 ```
+*(Where `<YOUR_ACS_CONNECTION_STRING>` is obtained from Azure Portal > Communication Services > Keys, and `<YOUR_ACS_SENDER_ADDRESS>` is `DoNotReply@<your-domain>.azurecomm.net`).*
 
 ### Step 5: Package and Deploy
 ```bash
