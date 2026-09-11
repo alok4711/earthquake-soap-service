@@ -289,22 +289,71 @@ az postgres flexible-server firewall-rule create \
   --end-ip-address 0.0.0.0
 ```
 
-### Step 3: Create Azure Communication Services Resource
+### Step 3: Provision Azure Communication Services & Email Domain Pipeline
+
+The application features a fully functional, production-ready email alerting pipeline powered by Azure Communication Services (ACS). Run the following Azure CLI commands to provision and link all email components:
+
 ```bash
-# 1. Create Communication Service
+# 1. Register Microsoft.Communication provider (if not already registered)
+az provider register --namespace Microsoft.Communication
+az provider show -n Microsoft.Communication --query registrationState -o tsv  # Wait until 'Registered'
+
+# 2. Create the primary Communication Service resource
 az communication create \
   --name earthquake-comm-service \
   --location "Global" \
   --data-location "United States" \
   --resource-group rg-earthquake-service
 
-# 2. Retrieve Connection String
-az communication list-key \
+# 3. Create the Email Communication Service resource
+az communication email create \
+  --name earthquake-email-service \
+  --location "Global" \
+  --data-location "United States" \
+  --resource-group rg-earthquake-service
+
+# 4. Provision an Azure Managed Domain (auto-configures SPF, DKIM, DMARC instantly without custom DNS setup)
+az communication email domain create \
+  --resource-group rg-earthquake-service \
+  --email-service-name earthquake-email-service \
+  --domain-name AzureManagedDomain \
+  --domain-management AzureManaged
+
+# 5. Verify domain status (Managed domains verify automatically)
+az communication email domain show \
+  --email-service-name earthquake-email-service \
+  --domain-name AzureManagedDomain \
+  --resource-group rg-earthquake-service \
+  --query verificationStates
+
+# 6. Retrieve the Azure-assigned sender domain and sender address
+# Format: DoNotReply@<guid>.azurecomm.net
+FROM_DOMAIN=$(az communication email domain show \
+  --email-service-name earthquake-email-service \
+  --domain-name AzureManagedDomain \
+  --resource-group rg-earthquake-service \
+  --query fromSenderDomain -o tsv)
+ACS_SENDER_ADDRESS="DoNotReply@${FROM_DOMAIN}"
+echo "Assigned Sender Address: ${ACS_SENDER_ADDRESS}"
+
+# 7. Link the Email Domain to the Communication Service (Required for outbound sending)
+DOMAIN_ID=$(az communication email domain show \
+  --email-service-name earthquake-email-service \
+  --domain-name AzureManagedDomain \
+  --resource-group rg-earthquake-service \
+  --query id -o tsv)
+
+az communication update \
   --name earthquake-comm-service \
   --resource-group rg-earthquake-service \
-  --query primaryConnectionString -o tsv
+  --linked-domains "${DOMAIN_ID}"
+
+# 8. Retrieve the primary ACS connection string
+ACS_CONNECTION_STRING=$(az communication list-key \
+  --name earthquake-comm-service \
+  --resource-group rg-earthquake-service \
+  --query primaryConnectionString -o tsv)
 ```
-*(Optional: In the Azure Portal, create an Email Communication Service domain or Azure Managed Domain, e.g. `DoNotReply@<unique-id>.azurecomm.net`, and link it to your Communication Service).*
 
 ### Step 4: Configure App Service Settings
 Set the database and ACS environment variables on your Azure App Service:
@@ -319,8 +368,8 @@ az webapp config appsettings set \
     DB_USER="psqladmin" \
     DB_PASSWORD="YourStrongPassword123!" \
     DB_SSL_MODE="require" \
-    ACS_CONNECTION_STRING="<your_acs_primary_connection_string>" \
-    ACS_SENDER_ADDRESS="DoNotReply@<your-domain>.azurecomm.net"
+    ACS_CONNECTION_STRING="${ACS_CONNECTION_STRING}" \
+    ACS_SENDER_ADDRESS="${ACS_SENDER_ADDRESS}"
 ```
 
 ### Step 5: Package and Deploy

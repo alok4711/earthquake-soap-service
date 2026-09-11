@@ -70,6 +70,12 @@ public class ScheduledAlertPollingJob {
                             sub.getNotifiedEarthquakeIds().add(eq.getId());
                             subscriptionRepository.save(sub);
                             alertCount++;
+                            try {
+                                Thread.sleep(600); // Respect Azure Communication Services email rate limits
+                            } catch (InterruptedException ie) {
+                                Thread.currentThread().interrupt();
+                                break;
+                            }
                         }
                     }
                 }
